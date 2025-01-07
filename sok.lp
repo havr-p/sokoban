@@ -96,6 +96,6 @@ goalreached :- step(S), N = #count{ X,T : atgoal(X,T) , goal(X) }, N = #count{ X
 
 % Gringo directives to show / hide particular literals
 %#hide.
-%#show pushtonongoal/7.
-%#show move/5.
-%#show pushtogoal/7.
+#show pushtonongoal/7.
+#show move/5.
+#show pushtogoal/7.
