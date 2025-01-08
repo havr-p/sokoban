@@ -94,6 +94,8 @@ preconditions_pg( P,S,Ppos,From,To,Dir,Ti ) :- at( P,Ppos,Ti-1 ), at( S,From,Ti-
 goalreached :- step(S), N = #count{ X,T : atgoal(X,T) , goal(X) }, N = #count{ X : goal(X) }.
 :- not goalreached.
 
+:- pushtogoal(P,S,_,_,To,_,T1), pushtonongoal(P,S,_,_,_,_,T2), T2 > T1.
+
 % Gringo directives to show / hide particular literals
 #show pushtonongoal/7.
 #show move/5.

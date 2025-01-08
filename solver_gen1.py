@@ -1,7 +1,7 @@
 import clingo
 import argparse
 
-def generate_sokoban_lp_from_map(map_str):
+def generate_sokoban_lp_from_map(map_str, max_steps: int = 20):
     """
     Принимает карту Sokoban в виде строк (с символами #, S, C, X, s, c),
     и возвращает строку с фактами ASP (в формате .lp)
@@ -67,7 +67,7 @@ def generate_sokoban_lp_from_map(map_str):
         else:
             facts.append(f"isnongoal({cell}).")
             if (r,c) in wall_cells:
-                print (f"adding wall cell {(r+1,c+1)}")
+               pass #print (f"adding wall cell {(r+1,c+1)}")
         cells_with_goal_facts.add((r,c))
     
     assert cells_with_goal_facts == all_possible_positions, \
@@ -103,72 +103,91 @@ def generate_sokoban_lp_from_map(map_str):
             nr, nc = r + dr, c + dc
             if (nr, nc) in free_cells:
                 facts.append(f"movedir({cell_name(r,c)},{cell_name(nr,nc)},{dname}).")
+    
+     # Add step facts
+    facts.append(f"#const maxsteps = {max_steps}.")
+    facts.extend(f"step({i})." for i in range(1, max_steps + 1))
 
     return "\n".join(facts)
 
 
-# ---------------------------
-# Пример интеграции с Clingo:
-# ---------------------------
-def sokoban_solve_from_map(domain_asp_file, map_str, max_steps=20):
+def run_and_format_solution(domain_asp_file: str, map_str: str, max_steps: int = 20) -> str:
     """
-    Считывает encodings из domain_asp_file (где у вас правила Sokoban),
-    генерирует факты на основе map_str,
-    решает задачу через Clingo Python API.
+    Runs the Sokoban solver using Clingo and formats its output.
+    
+    Args:
+        domain_asp_file: Path to the ASP logic file with Sokoban rules
+        map_str: Input map string
+        max_steps: Maximum number of steps for solution
+        
+    Returns:
+        Formatted string with solution steps or message if no solution found
     """
+    
+    def on_model(model):
+        nonlocal solution_found, solution_steps
+        solution_found = True
+        print("Found solution:", model)  # Print raw model for debugging
+        # Get all symbolic atoms from the model
+        atoms = [str(atom) for atom in model.symbols(shown=True)]
+        # Filter only movement predicates
+        moves = [atom for atom in atoms if any(
+            atom.startswith(pred) for pred in ['move', 'pushtogoal', 'pushtonongoal']
+        )]
+        solution_steps.extend(moves)
+
+    # Initialize solution tracking
+    solution_found = False
+    solution_steps = []
+    
+    # Set up Clingo control
     ctl = clingo.Control()
-    ctl.configuration.solve.models = 1  # Найти все модели (0 = неограниченно)
-
-    # 1) Загружаем домен (код Sokoban)
-    ctl.load(domain_asp_file)
-
-    # 2) Генерируем факты .lp из карты
-    instance_lp = generate_sokoban_lp_from_map(map_str, max_steps=max_steps)
-
-    # 3) Добавляем их как "base" часть
-    ctl.add("base", [], instance_lp)
-
-    # 4) Ground
-    ctl.ground([("base", [])])
-
-    # 5) Запуск решателя
+    ctl.configuration.solve.models = 1  # Find first model
+    
     print("Solving Sokoban...\n")
-    result = ctl.solve(on_model=lambda m: print("Model:", m))
-    print("Solving finished with:", result)
+    print(f"encoder file:\n {domain_asp_file}")
+    print(f"instance:\n {map_str}")
+    
+    try:
+        # 1. Load domain (Sokoban rules)
+        ctl.load(domain_asp_file)
+        
+        # 2. Generate facts from map
+        instance_lp = generate_sokoban_lp_from_map(map_str, max_steps=max_steps)
+        
+        # 3. Add facts as base part
+        ctl.add("base", [], instance_lp)
+        
+        # 4. Ground
+        ctl.ground([("base", [])])
+        
+        # 5. Run solver
+        result = ctl.solve(on_model=on_model)
+        print("Solving finished with:", result)
+        
+        if not solution_found:
+            return "No solution found"
+        
+        # Parse steps and sort them
+        step_dict = {}
+        for step in solution_steps:
+            # Extract step number from the end of the predicate
+            step_num = int(step.split(',')[-1].rstrip(').'))
+            step_dict[step_num] = step
+        
+        # Format output
+        formatted_solution = []
+        formatted_solution.append(f"Solution found in {max(step_dict.keys())} steps:")
+        for step_num in sorted(step_dict.keys()):
+            action = step_dict[step_num]
+            # Make it more readable by adding spaces after commas
+            action = action.replace(',', ', ').replace('  ', ' ')
+            formatted_solution.append(f"Step {step_num}: {action}")
+        
+        return "\n".join(formatted_solution)
+        
+    except Exception as e:
+        return f"Error solving map: {str(e)}"
 
 
-if __name__ == "__main__":
-    # Пример карты:
-    # #########
-    # #S  C  X#
-    # #########
-    # (Здесь три свободные клетки: (1,1) = S, (1,3) = C, (1,5) = X,
-    #  все остальное - стены #.)
-    map = """\
-#########
-#S  C  X#
-#########
-"""
-    parser = argparse.ArgumentParser(description="Sokoban Solver using Clingo Python API")
-    parser.add_argument("--asp-file", type=str, default="enc.lp", nargs='?',
-                        help="Path to the ASP logic file (default: sokoban.lp).")
-    parser.add_argument("--map", type=str, default="map1.txt", nargs='?',
-                        help="Path to the input file (default: input.lp).")
-    parser.add_argument("--timeout", type=int, default=60, nargs='?',
-                        help="Timeout for the solver in seconds (default: 60).")
-
-    args = parser.parse_args()
-
-    asp_file = args.asp_file
-    with open(args.map, 'r') as file:
-        map = file.read()
-    timeout = args.timeout
-
-    print(map);
-
-
-    # Допустим, у вас файл "sokoban_domain.lp" с правилами (Generate/Test/Define).
-    domain_file = "sok.lp"
-
-    # Запустим решение:
-    sokoban_solve_from_map(domain_file, map, max_steps=5)
+    
