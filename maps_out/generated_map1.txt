@@ -81,5 +81,5 @@ movedir(pos_4_4,pos_3_4,dir_left).
 movedir(pos_4_4,pos_4_3,dir_down).
 movedir(pos_5_4,pos_4_4,dir_left).
 movedir(pos_5_4,pos_5_3,dir_down).
-#const maxsteps = 20.
-step(3..20).
+#const maxsteps = 10.
+step(1..10).

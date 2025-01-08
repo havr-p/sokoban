@@ -1,7 +1,7 @@
 import clingo
 import argparse
 
-def generate_sokoban_lp_from_map(map_str, max_steps: int = 20):
+def generate_sokoban_lp_from_map(map_str, max_steps: int = 10):
     """
     Принимает карту Sokoban в виде строк (с символами #, S, C, X, s, c),
     и возвращает строку с фактами ASP (в формате .lp)
@@ -106,7 +106,7 @@ def generate_sokoban_lp_from_map(map_str, max_steps: int = 20):
     
      # Add step facts
     facts.append(f"#const maxsteps = {max_steps}.")
-    facts.append(f"step({i}..{max_steps}).")
+    facts.append(f"step({1}..{max_steps}).")
 
     return "\n".join(facts)
 
@@ -154,6 +154,8 @@ def run_and_format_solution(domain_asp_file: str, map_str: str, max_steps: int =
         
         # 2. Generate facts from map
         instance_lp = generate_sokoban_lp_from_map(map_str, max_steps=max_steps)
+        print("instance in ASP")
+        print(instance_lp);
         
         # 3. Add facts as base part
         ctl.add("base", [], instance_lp)
