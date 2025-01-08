@@ -137,15 +137,15 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str):
         error_msg += compare_facts_side_by_side(expected_facts, actual_facts)
         
         # Добавляем подробный дифф
-        error_msg += "\n\nDetailed Diff (sorted lines with lengths):\n"
-        error_msg += compare_facts_detailed(expected_output, actual_output)
+        #error_msg += "\n\nDetailed Diff (sorted lines with lengths):\n"
+        #error_msg += compare_facts_detailed(expected_output, actual_output)
         
         # Дополнительно можно вывести все факты по типам
-        error_msg += "\n\nExpected facts grouped by type:"
-        error_msg += format_facts_by_type(expected_facts)
+        #error_msg += "\n\nExpected facts grouped by type:"
+        #error_msg += format_facts_by_type(expected_facts)
         
-        error_msg += "\n\nActual facts grouped by type:"
-        error_msg += format_facts_by_type(actual_facts)
+        #error_msg += "\n\nActual facts grouped by type:"
+        #error_msg += format_facts_by_type(actual_facts)
         
         pytest.fail(error_msg)
     else:
