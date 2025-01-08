@@ -1,2 +1,2 @@
-sok.lp - orginal encoding
+sok.lp - orginal encoding  
 all else - experiments
