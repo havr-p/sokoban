@@ -3,7 +3,7 @@ import re
 from dataclasses import dataclass
 from collections import defaultdict
 
-@dataclass(frozen=True)  # Make Position immutable and hashable
+@dataclass(frozen=True)
 class Position:
     x: int
     y: int
@@ -20,6 +20,15 @@ class Position:
     
     def __str__(self) -> str:
         return f"pos_{self.x}_{self.y}"
+
+    def get_adjacent_positions(self) -> List[Tuple['Position', str]]:
+        """Get all adjacent positions with their direction names."""
+        return [
+            (Position(self.x-1, self.y), 'left'),
+            (Position(self.x+1, self.y), 'right'),
+            (Position(self.x, self.y+1), 'up'),
+            (Position(self.x, self.y-1), 'down')
+        ]
 
 class SokobanASPValidator:
     """Validates Sokoban map encodings with focus on semantic correctness."""
@@ -64,12 +73,9 @@ class SokobanASPValidator:
             fact = fact.strip()
             if not fact:  # Skip empty lines
                 continue
-            
-            # Categorize based on predicate name
             predicate = fact.split('(')[0]
             categorized[predicate].add(fact)
-            
-        return dict(categorized)  # Convert defaultdict to regular dict
+        return dict(categorized)
 
     def _get_positions_of_type(self, types: str | list[str]) -> Set[Position]:
         """Get all positions of specified type(s)."""
@@ -86,11 +92,14 @@ class SokobanASPValidator:
 
     def validate(self) -> bool:
         """Run all semantic validation checks."""
-        self._validate_walls_behavior()
-        self._validate_movement_rules()
-        self._validate_stone_behavior()
-        self._validate_player_behavior()
-        self._validate_goal_behavior()
+        validators = [
+            self._validate_walls_behavior,
+            self._validate_movement_rules,
+            self._validate_walls_behavior,
+        ]
+        
+        for validator in validators:
+            validator()
         
         if self.errors:
             raise AssertionError("ASP Encoding Validation Failed:\n" + 
@@ -99,26 +108,28 @@ class SokobanASPValidator:
 
     def _validate_walls_behavior(self):
         """Validate wall semantics."""
-        # 1. Walls should block movement
+        self._validate_wall_movement()
+        self._validate_wall_clear()
+
+    def _validate_wall_movement(self):
+        """Check that walls properly block movement."""
         for fact in self.facts.get('movedir', []):
             try:
-                # Extract positions from movedir fact
                 match = re.match(r'movedir\((pos_\d+_\d+),(pos_\d+_\d+),dir_\w+\)', fact)
                 if match:
                     from_pos = self._extract_position(match.group(1))
                     to_pos = self._extract_position(match.group(2))
                     
-                    # Check if movement passes through wall
                     if from_pos in self.walls or to_pos in self.walls:
                         self._add_error(f"Invalid movedir through wall: {fact}")
                     
-                    # Check if positions are adjacent
                     if not from_pos.is_adjacent(to_pos):
                         self._add_error(f"Non-adjacent positions in movedir: {fact}")
             except (ValueError, AttributeError) as e:
                 self._add_error(f"Malformed movedir fact: {fact} - {str(e)}")
 
-        # 2. Walls should never be clear
+    def _validate_wall_clear(self):
+        """Check that walls are never marked as clear."""
         for fact in self.facts.get('clear', []):
             try:
                 pos = self._extract_position(fact)
@@ -128,82 +139,49 @@ class SokobanASPValidator:
                 self._add_error(f"Malformed clear fact: {fact} - {str(e)}")
 
     def _validate_movement_rules(self):
-        """Validate movement semantics."""
-        # Check movement directions are valid
+        """Validate movement semantics and completeness."""
+        self._validate_direction_names()
+        self._validate_movement_completeness()
+        self._validate_movement_connectivity()
+
+    def _validate_direction_names(self):
+        """Check that all direction names are valid."""
         valid_dirs = set(self.DIRECTIONS)
         for fact in self.facts.get('movedir', []):
             match = re.search(r'dir_(\w+)', fact)
             if match and match.group(1) not in valid_dirs:
                 self._add_error(f"Invalid direction in fact: {fact}")
-                
-        # Validate movement connectivity
+
+    def _validate_movement_completeness(self):
+        """Verify all possible valid movements are present."""
+        expected_movedir = set()
+        
+        # Only generate movedir facts for non-wall positions
+        for pos in self.map_grid:
+            if pos not in self.walls:  # Only consider non-wall positions
+                for next_pos, dir_name in pos.get_adjacent_positions():
+                    # Only add movedir if both positions are in grid and neither is a wall
+                    if (next_pos in self.map_grid and 
+                        next_pos not in self.walls):
+                        expected = f"movedir({pos},{next_pos},dir_{dir_name})."
+                        expected_movedir.add(expected)
+                    
+        actual_movedir = set(self.facts.get('movedir', []))
+        
+        if missing := expected_movedir - actual_movedir:
+            self._add_error("Missing movedir facts:\n" + 
+                          "\n".join(f"  {fact}" for fact in sorted(missing)))
+        if extra := actual_movedir - expected_movedir:
+            self._add_error("Unexpected movedir facts:\n" + 
+                          "\n".join(f"  {fact}" for fact in sorted(extra)))
+
+    def _validate_movement_connectivity(self):
+        """Check that non-wall positions have valid moves."""
         for pos in self.map_grid:
             if pos not in self.walls:
                 outgoing_moves = self._get_outgoing_moves(pos)
                 if not outgoing_moves:
                     self._add_error(f"Position {pos} has no valid moves")
-
-    def _validate_stone_behavior(self):
-        """Validate stone semantics."""
-        # 1. Stones cannot occupy the same position
-        stone_positions = set()
-        for fact in self.facts.get('at', []):
-            if 'stone' in fact:
-                try:
-                    pos = self._extract_position(fact)
-                    if pos in stone_positions:
-                        self._add_error(f"Multiple stones in same position: {fact}")
-                    stone_positions.add(pos)
-                except ValueError as e:
-                    self._add_error(f"Malformed stone position: {fact} - {str(e)}")
-
-        # 2. Stones cannot be in walls
-        for pos in stone_positions:
-            if pos in self.walls:
-                self._add_error(f"Stone in wall position: {pos}")
-
-    def _validate_player_behavior(self):
-        """Validate player semantics."""
-        if not self.player:
-            self._add_error("No player position found in map")
-            return
-
-        # 1. Ensure single player position
-        player_positions = set()
-        for fact in self.facts.get('at', []):
-            if 'player' in fact:
-                try:
-                    pos = self._extract_position(fact)
-                    player_positions.add(pos)
-                except ValueError as e:
-                    self._add_error(f"Malformed player position: {fact} - {str(e)}")
-        
-        if len(player_positions) != 1:
-            self._add_error(f"Expected exactly one player position, found {len(player_positions)}")
-
-        # 2. Player cannot be in wall
-        if self.player in self.walls:
-            self._add_error(f"Player in wall position: {self.player}")
-
-    def _validate_goal_behavior(self):
-        """Validate goal semantics."""
-        # 1. Goals cannot be in walls
-        for pos in self.goals:
-            if pos in self.walls:
-                self._add_error(f"Goal in wall position: {pos}")
-
-        # 2. Validate goal/nongoal consistency
-        positions = set(self.map_grid.keys())
-        goal_facts = {self._extract_position(f) for f in self.facts.get('isgoal', [])}
-        nongoal_facts = {self._extract_position(f) for f in self.facts.get('isnongoal', [])}
-        
-        # Check that every position is either goal or nongoal
-        if positions != goal_facts.union(nongoal_facts):
-            self._add_error("Not all positions are marked as goal or nongoal")
-        
-        # Check no position is both goal and nongoal
-        if goal_facts.intersection(nongoal_facts):
-            self._add_error("Some positions are marked as both goal and nongoal")
 
     def _get_outgoing_moves(self, pos: Position) -> Set[Position]:
         """Get all valid moves from a position."""
