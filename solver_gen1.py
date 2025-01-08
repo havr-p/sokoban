@@ -86,7 +86,7 @@ def generate_sokoban_lp_from_map(map_str):
     # Добавляем горизонтальные и вертикальные перемещения между свободными клетками
     for (r, c) in free_cells:
         for (dr, dc, dname) in [(0,1,"dir_right"), (0,-1,"dir_left"),
-                               (1,0,"dir_down"), (-1,0,"dir_up")]:
+                               (-1,0,"dir_down"), (1,0,"dir_up")]:
             nr, nc = r + dr, c + dc
             if (nr, nc) in free_cells:
                 facts.append(f"movedir({cell_name(r,c)},{cell_name(nr,nc)},{dname}).")
