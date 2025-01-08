@@ -8,7 +8,7 @@ import os
 
 from solver_gen1 import generate_sokoban_lp_from_map
 
-# how to run: pytest map_test.py --tb=short -v
+# how to run: pytest map_test.py --tb=short -v -s
 
 # Directories for maps and expected outputs
 MAPS_DIR = os.path.join(os.path.dirname(__file__), 'maps')
@@ -17,6 +17,7 @@ EXPECTED_DIR = os.path.join(os.path.dirname(__file__), 'expected')
 def read_file(file_path: str) -> str:
     """Reads the content of a file and returns it as a string."""
     with open(file_path, 'r', encoding='utf-8') as file:
+        print(f"current map: {file.name}")
         return file.read()
 
 def format_facts_by_type(facts: Set[str]) -> str:
@@ -103,6 +104,8 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str):
     expected_path = os.path.join(EXPECTED_DIR, expected_file)
     
     map_str = read_file(map_path)
+    print('\ncurrent map\n')
+    print(map_str)
     expected_output = read_file(expected_path)
     
     actual_output = generate_sokoban_lp_from_map(map_str)

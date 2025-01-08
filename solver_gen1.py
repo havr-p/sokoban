@@ -66,6 +66,8 @@ def generate_sokoban_lp_from_map(map_str):
             facts.append(f"isgoal({cell}).")
         else:
             facts.append(f"isnongoal({cell}).")
+            if (r,c) in wall_cells:
+                print (f"adding wall cell {(r+1,c+1)}")
         cells_with_goal_facts.add((r,c))
     
     assert cells_with_goal_facts == all_possible_positions, \
