@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+	<head>
+        <style type = "text/css">
+            #thegame{
+                font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+                font-size: 32px;
+                font-style: normal;
+                font-weight: bold;
+                line-height: 24px;
+                white-space: pre;
+            }
+            #moves{
+                font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+                margin-top: 10px;
+            }
+            button{
+                width: 60px;
+                height: 60px;
+            }
+        </style>
+    </head>
+	<body>
+        <table cellpadding = "0" cellspacing = "0">
+            <tr>
+                <td>
+                    <div id = "thegame"></div>
+                </td>
+                <td>
+                    <table cellpadding = "0" cellspacing = "0">
+                        <tr>
+                            <td></td>
+                            <td><button type = "button">UP</button></td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td><button type = "button">LEFT</button></td>
+                            <td></td>
+                            <td><button type = "button">RIGHT</button></td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td><button type = "button">DOWN</button></td>
+                            <td><button type = "button">UNDO</button></td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+        <div id = "output"></div>
+        <script src = "game.js"></script>
+        <script>
+            let level = "########\n#####@.#\n####.$$#\n#### $ #\n### .# #\n###    #\n###  ###\n########";
+            let sokoban = new Sokoban();
+            sokoban.buildLevelFromString(level);
+            writeOutput(false);
+            var buttons = document.getElementsByTagName("button");
+            let move;
+            for(let i = 0; i < buttons.length; i++){
+                buttons[i].addEventListener("click", function(){
+                    switch(i){
+                        case 0:
+                            move = sokoban.moveUp();
+                            break;
+                        case 1:
+                            move = sokoban.moveLeft();
+                            break;
+                        case 2:
+                            move = sokoban.moveRight();
+                            break;
+                        case 3:
+                            move = sokoban.moveDown();
+                            break;
+                        case 4:
+                            sokoban.undoMove();
+                    }
+                    writeOutput(move);
+                })
+            }
+            function writeOutput(hasMoved){
+                let player = sokoban.getPlayer();
+                let crates = sokoban.getCrates();
+                document.getElementById("thegame").innerHTML = sokoban.levelToString();
+                let outputString = "<p>" + sokoban.getMoves() + "</p>";
+                outputString += itemDetails(player, "Player", hasMoved);
+                for(let i = 0; i < crates.length; i ++){
+                    outputString += itemDetails(crates[i], "Crate " + (i + 1), hasMoved);
+                }
+                outputString += "<p>Crates on goal: " + sokoban.countCratesOnGoal() + "/" + sokoban.countCrates() + "</p>";
+                outputString += "<p>Level solved: " + sokoban.isLevelSolved() + "</p>";
+                document.getElementById("output").innerHTML = outputString;
+            }
+            function itemDetails(item, name, hasMoved){
+                let string = "<p>" + name + ": ";
+                if(item.hasMoved() && hasMoved){
+                    string += "(" + item.getPrevRow() + "," + item.getPrevColumn() + ") >> ";
+                }
+                string += "(" + item.getRow() + "," + item.getColumn() + ")";
+                if(item.isOnGoal()){
+                    string += " on goal";
+                }
+                string += "</p>";
+                return string;
+            }
+        </script>
+	</body>
+</html>

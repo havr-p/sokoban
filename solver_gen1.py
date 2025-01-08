@@ -145,8 +145,8 @@ def run_and_format_solution(domain_asp_file: str, map_str: str, max_steps: int =
     ctl.configuration.solve.models = 1  # Find first model
     
     print("Solving Sokoban...\n")
-    print(f"encoder file:\n {domain_asp_file}")
-    print(f"instance:\n {map_str}")
+    #print(f"encoder file:\n {domain_asp_file}")
+    #print(f"instance:\n {map_str}")
     
     try:
         # 1. Load domain (Sokoban rules)
@@ -163,7 +163,7 @@ def run_and_format_solution(domain_asp_file: str, map_str: str, max_steps: int =
         
         # 5. Run solver
         result = ctl.solve(on_model=on_model)
-        print("Solving finished with:", result)
+        #print("Solving finished with:", result)
         
         if not solution_found:
             return "No solution found"
@@ -188,6 +188,98 @@ def run_and_format_solution(domain_asp_file: str, map_str: str, max_steps: int =
         
     except Exception as e:
         return f"Error solving map: {str(e)}"
+    
+
+def next_step_map(current_map: str, step: str) -> str:
+    """
+    Generate the next map state based on the current map and a solution step.
+    
+    Args:
+        current_map: String representation of the current map state
+        step: String containing the current solution step (e.g., 'move(player_01, pos_2_2, pos_3_2, dir_right, 17)')
+        
+    Returns:
+        Updated map string reflecting the new state after the step
+    """
+    # Convert map to 2D list for easier manipulation
+    map_lines = current_map.strip().split('\n')
+    map_grid = [list(line) for line in map_lines]
+    
+    def pos_to_coords(pos_str: str) -> tuple[int, int]:
+        """Convert 'pos_X_Y' string to (x-1, y-1) coordinates."""
+        _, x, y = pos_str.split('_')
+        return (int(x)-1, int(y)-1)  # Convert to 0-based indices
+    
+    def get_cell_type(x: int, y: int) -> str:
+        """Get the current cell type at the given coordinates."""
+        return map_grid[y][x]
+    
+    def set_cell(x: int, y: int, new_value: str):
+        """Set a cell value, maintaining goal positions."""
+        current = map_grid[y][x]
+        # If we're moving onto a goal cell
+        if current == 'X':
+            if new_value == 'S':
+                map_grid[y][x] = 's'  # player on goal
+            elif new_value == 'C':
+                map_grid[y][x] = 'c'  # crate on goal
+            else:
+                map_grid[y][x] = new_value
+        # If we're moving off a goal cell
+        elif current in ('s', 'c'):
+            map_grid[y][x] = 'X'  # restore goal
+        else:
+            map_grid[y][x] = new_value
+    
+    # Parse the step
+    if 'move' in step:
+        # Handle player movement
+        parts = step.split('(')[1].split(')')[0].split(', ')
+        _, from_pos, to_pos, _, _ = parts
+        
+        from_x, from_y = pos_to_coords(from_pos)
+        to_x, to_y = pos_to_coords(to_pos)
+        
+        # Move player
+        set_cell(from_x, from_y, ' ')  # Clear old position
+        set_cell(to_x, to_y, 'S')      # Set new position
+        
+    elif 'pushtogoal' in step or 'pushtonongoal' in step:
+        # Handle box pushing
+        parts = step.split('(')[1].split(')')[0].split(', ')
+        _, stone, player_pos, box_pos, target_pos, _, _ = parts
+        
+        p_x, p_y = pos_to_coords(player_pos)
+        b_x, b_y = pos_to_coords(box_pos)
+        t_x, t_y = pos_to_coords(target_pos)
+        
+        # Move player to box's position
+        set_cell(p_x, p_y, ' ')    # Clear player's old position
+        set_cell(b_x, b_y, 'S')    # Move player to box's position
+        set_cell(t_x, t_y, 'C')    # Move box to target position
+    
+    # Convert back to string
+    return '\n'.join(''.join(line) for line in map_grid)
+
+def visualize_solution(initial_map: str, solution_steps: list[str]) -> list[str]:
+    """
+    Generate a sequence of maps showing the solution progress.
+    
+    Args:
+        initial_map: String representation of the initial map
+        solution_steps: List of solution steps strings
+        
+    Returns:
+        List of map strings, one for each step of the solution
+    """
+    maps = [initial_map]
+    current_map = initial_map
+    
+    for step in solution_steps:
+        current_map = next_step_map(current_map, step)
+        maps.append(current_map)
+        
+    return maps
 
 
     

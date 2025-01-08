@@ -1,12 +1,12 @@
 import re
 from asp_validator import validate_asp_encoding
-import pytest # type: ignore
+import pytest 
 import difflib
 from typing import Dict, Set, List, Tuple
-from tabulate import tabulate # type: ignore
+from tabulate import tabulate
 import os
 
-from solver_gen1 import generate_sokoban_lp_from_map, run_and_format_solution
+from solver_gen1 import generate_sokoban_lp_from_map, run_and_format_solution, visualize_solution
 
 # how to run: pytest map_test.py --tb=short -v -s
 
@@ -86,14 +86,16 @@ def compare_facts_detailed(expected: str, actual: str) -> str:
     return "\n".join(diff_output)
 
 @pytest.mark.parametrize("map_file,expected_file", [
-    # ("map1.txt", "expected1.txt"),
+     ("map1.txt", "expected1.txt"),
     # ("map2.txt", "expected2.txt"),
     # ("map3.txt", "expected3.txt"),
-    ("map4.txt", "expected4.txt"),
-    ("map5.txt", "expected5.txt"),
+    #("map4.txt", "expected4.txt"),
+    #("map5.txt", "expected5.txt"),
     # ("map6.txt", "expected6.txt"),
     # ("map7.txt", "expected7.txt"),
     # ("map8.txt", "expected8.txt"),
+     ("map9.txt", "expected9.txt"),
+     ("map10.txt", "expected10.txt"),
 ])
 def test_generate_sokoban_lp(map_file: str, expected_file: str):
     """
@@ -104,8 +106,8 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str):
     expected_path = os.path.join(EXPECTED_DIR, expected_file)
     
     map_str = read_file(map_path)
-    #print('\ncurrent map\n')
-    #print(map_str)
+    print('\ncurrent map\n')
+    print(map_str)
     expected_output = read_file(expected_path)
     
     actual_output = generate_sokoban_lp_from_map(map_str)
@@ -142,7 +144,16 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str):
     
 
     # Run solver and print solution
-    domain_file = "sok.lp"  # Путь к файлу с ASP правилами
+    domain_file = "sok.lp"  # Path to the file with ASP rules
     solution = run_and_format_solution(domain_file, map_str, 20)
-    print("\nSolution steps:")
+    #print("\nSolution steps:")
     print(solution)
+
+    # Assuming initial_map is the map_str and solution_steps is the parsed solution
+    initial_map = map_str
+    solution_steps = solution.splitlines()
+
+    maps = visualize_solution(initial_map, solution_steps)
+    for i, map_state in enumerate(maps):
+        print(f"\nAfter step {i}:")
+        print(map_state)
