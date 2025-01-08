@@ -9,6 +9,7 @@ at(stone_02,pos_4_3).
 clear(pos_3_2).
 clear(pos_5_2).
 clear(pos_6_2).
+clear(pos_2_3).
 clear(pos_3_3).
 clear(pos_5_3).
 clear(pos_6_3).

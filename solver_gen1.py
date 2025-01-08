@@ -26,6 +26,12 @@ def generate_sokoban_lp_from_map(map_str):
     goal_cells = []  # клетки-цели
     wall_cells = []  # клетки-стены
 
+    all_possible_positions = set() 
+    rows = len(lines)
+    for r in range(rows):
+        for c in range(len(lines[r])):
+            all_possible_positions.add((r, c))
+
     # Парсим карту
     for r in range(len(lines)):
         for c in range(len(lines[r])):
@@ -53,12 +59,17 @@ def generate_sokoban_lp_from_map(map_str):
 
     # Добавляем isgoal/isnongoal, включая стены
     all_cells = free_cells + wall_cells
+    cells_with_goal_facts = set()
     for (r, c) in all_cells:
         cell = cell_name(r, c)
         if (r, c) in goal_cells:
             facts.append(f"isgoal({cell}).")
         else:
             facts.append(f"isnongoal({cell}).")
+        cells_with_goal_facts.add((r,c))
+    
+    assert cells_with_goal_facts == all_possible_positions, \
+    f"Missing isgoal/isnongoal facts for positions: {all_possible_positions - cells_with_goal_facts}"
 
     # Добавляем цель для каждого камня
     for i in range(1, len(stone_positions) + 1):

@@ -1,7 +1,9 @@
+import re
+from asp_validator import validate_asp_encoding
 import pytest
 import textwrap
 import difflib
-from typing import Set, List, Tuple
+from typing import Dict, Set, List, Tuple
 from tabulate import tabulate
 import os
 
@@ -121,7 +123,23 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str):
     
     # Генерируем факты с помощью функции
     actual_output = generate_sokoban_lp_from_map(map_str)
+    # Создаем папку maps_out, если она не существует
+    output_dir = os.path.join(os.path.dirname(__file__), 'maps_out')
+    os.makedirs(output_dir, exist_ok=True)
     
+    # Путь для сохранения фактического вывода
+    actual_output_path = os.path.join(output_dir, f"generated_{map_file}")
+    
+    # Сохраняем фактический вывод в файл
+    with open(actual_output_path, 'w', encoding='utf-8') as file:
+        file.write(actual_output)
+    
+
+    try:
+        validate_asp_encoding(map_str, actual_output)
+    except AssertionError as e:
+        # Add detailed error message and fail the test
+        print(f"\nTest failed for {map_file}! Differences found:\n\n{str(e)}")
     # Преобразуем выводы в множества для сравнения, убирая лишние пробелы
     expected_facts = set(line.strip() for line in expected_output.strip().split('\n') if line.strip())
     actual_facts = set(line.strip() for line in actual_output.strip().split('\n') if line.strip())
