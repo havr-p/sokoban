@@ -1,136 +1,96 @@
 import clingo
 import argparse
 
-def generate_sokoban_lp_from_map(map_str, max_steps=3):
+def generate_sokoban_lp_from_map(map_str):
     """
     Принимает карту Sokoban в виде строк (с символами #, S, C, X, s, c),
-    и возвращает строку с фактами ASP (в формате .lp):
-      - player/1, stone/1, isgoal/1, isnongoal/1
-      - movedir(pos_r_c, pos_r'_c', dir_right/dir_left/dir_up/dir_down)
-      - at/2, clear/1
-      - goal/1 (если хотим указать, что нужно передвинуть crate (stone))
-      - step(1..max_steps)
+    и возвращает строку с фактами ASP (в формате .lp)
     """
     lines = map_str.splitlines()
-    # Удалим пустые строчки в начале/конце, если есть
-    lines = [ln for ln in lines if ln.strip() != ""]
+    # Удалим пустые строчки и ведущие/хвостовые пробелы
+    lines = [ln.strip() for ln in lines if ln.strip() != ""]
 
-    n_rows = len(lines)
-    n_cols = len(lines[0]) if n_rows > 0 else 0
-
-    # Проверяем, что все строки одной длины
-    for ln in lines:
-        if len(ln) != n_cols:
-            raise ValueError("All rows must have the same length (rectangular map).")
-
-    # Вспомогательная функция для имени клетки pos_r_c
     def cell_name(r, c):
-        return f"pos_{r}_{c}"
+        # Генерируем имя клетки как pos_{column+1}_{row+1}
+        return f"pos_{c+1}_{r+1}"
 
-    # Будем собирать факты в список, а затем склеим в строку
     facts = []
-
-    # Заводим для простоты фиксированные имена
-    # можно адаптировать, если на карте несколько камней и игроков
-    player_name = "player_01"
-    stone_name  = "stone_01"
-
-    # Сразу объявим player/1, stone/1 (если точно один игрок и один камень)
-    facts.append(f"player({player_name}).")
-    facts.append(f"stone({stone_name}).")
-
-    # Парсим карту, определяя стены, пустые клетки, цели, позиции игрока/камня
-    # #   - стена
-    # S   - Sokoban (игрок)
-    # C   - crate (камень)
-    # X   - storage/goal
-    # s   - Sokoban в goal-клетке
-    # c   - crate в goal-клетке
-    # ' ' (пробел) - обычная свободная клетка
-    # Любые стены мы НЕ будем задавать как isnongoal/... и не генерировать для них movedir/...
     
-    # Для хранения того, что мы встретили:
+    # Фиксированные имена объектов
+    facts.append("player(player_01).")
+    
+    # Для хранения позиций
     player_pos = None
-    stone_pos  = None
+    stone_positions = []  # список всех позиций камней
+    free_cells = []  # клетки, не являющиеся стенами
+    goal_cells = []  # клетки-цели
+    wall_cells = []  # клетки-стены
 
-    # Массив для отметки: какие клетки - не стена
-    free_cells = []
-
-    # Массив для отметки: какие клетки - goal
-    goal_cells = []
-
-    # Проходимся по строкам и столбцам
-    for r in range(n_rows):
-        for c in range(n_cols):
+    # Парсим карту
+    for r in range(len(lines)):
+        for c in range(len(lines[r])):
             ch = lines[r][c]
+            
+            # Собираем стены для добавления их в isnongoal
             if ch == '#':
-                # Стена, пропускаем
+                wall_cells.append((r, c))
                 continue
-            # Это «свободная» клетка (или с объектом), добавим в список
-            cell = cell_name(r, c)
+                
+            # Это "свободная" клетка
             free_cells.append((r, c))
-
-            # Смотрим, что именно
+            
             if ch in ('X', 's', 'c'):
-                # Это цель
                 goal_cells.append((r, c))
-
             if ch in ('S', 's'):
-                # Позиция игрока
                 player_pos = (r, c)
             if ch in ('C', 'c'):
-                # Позиция камня
-                stone_pos = (r, c)
+                stone_positions.append((r, c))
 
-    # Теперь формируем факты isgoal(...) / isnongoal(...)
-    for (r, c) in free_cells:
+    # Добавляем факты для каждого камня
+    for i, pos in enumerate(stone_positions, 1):
+        stone_name = f"stone_{str(i).zfill(2)}"  # stone_01, stone_02, etc.
+        facts.append(f"stone({stone_name}).")
+
+    # Добавляем isgoal/isnongoal, включая стены
+    all_cells = free_cells + wall_cells
+    for (r, c) in all_cells:
         cell = cell_name(r, c)
         if (r, c) in goal_cells:
             facts.append(f"isgoal({cell}).")
         else:
             facts.append(f"isnongoal({cell}).")
 
-    # Если хотим, чтобы цель — передвинуть stone_01 на все goal-клетки
-    # (или хотя бы одну), можно добавить: goal(stone_01).
-    # В классических примерах Sokoban нужно камни загнать на все X;
-    # тут для простоты сделаем условие: "нужно загнать 1 камень на 1 goal"
-    # (если на карте несколько X, это надо отдельно кодировать).
-    facts.append(f"goal({stone_name}).")
+    # Добавляем цель для каждого камня
+    for i in range(1, len(stone_positions) + 1):
+        stone_name = f"stone_{str(i).zfill(2)}"
+        facts.append(f"goal({stone_name}).")
 
-    # Позиции игрока/камня (если они есть)
+    # Добавляем начальную позицию игрока
     if player_pos:
-        facts.append(f"at({player_name},{cell_name(*player_pos)}).")
-    if stone_pos:
-        facts.append(f"at({stone_name},{cell_name(*stone_pos)}).")
+        facts.append(f"at(player_01,{cell_name(*player_pos)}).")
 
-    # Для всех свободных клеток, которые не заняты камнем/игроком, можно добавить clear(...)
-    # (если камень/игрок не стоит там).
-    # Но в классическом коде часто `clear(...)` предполагается, что клетка не занята ничем.
-    # Проверим, занята ли (r,c) камнем/игроком:
-    occupied_positions = set()
+    # Добавляем начальные позиции всех камней
+    for i, pos in enumerate(stone_positions, 1):
+        stone_name = f"stone_{str(i).zfill(2)}"
+        facts.append(f"at({stone_name},{cell_name(*pos)}).")
+
+    # Отмечаем свободные клетки
+    occupied = set()
     if player_pos:
-        occupied_positions.add(player_pos)
-    if stone_pos:
-        occupied_positions.add(stone_pos)
-
+        occupied.add(player_pos)
+    occupied = occupied.union(set(stone_positions))
     for (r, c) in free_cells:
-        if (r, c) not in occupied_positions:
+        if (r, c) not in occupied:
             facts.append(f"clear({cell_name(r,c)}).")
 
-    # Генерируем movedir(...) для соседних клеток (вверх/вниз/влево/вправо),
-    # при условии, что обе клетки не стена.
+    # Добавляем горизонтальные и вертикальные перемещения между свободными клетками
     for (r, c) in free_cells:
         for (dr, dc, dname) in [(0,1,"dir_right"), (0,-1,"dir_left"),
-                                (1,0,"dir_down"), (-1,0,"dir_up")]:
+                               (1,0,"dir_down"), (-1,0,"dir_up")]:
             nr, nc = r + dr, c + dc
             if (nr, nc) in free_cells:
                 facts.append(f"movedir({cell_name(r,c)},{cell_name(nr,nc)},{dname}).")
 
-    # Добавляем шаги (step(1), step(2), ..., step(max_steps))
-    for st in range(1, max_steps+1):
-        facts.append(f"step({st}).")
-
-    # Склеиваем в одну строку
     return "\n".join(facts)
 
 

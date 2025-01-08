@@ -24,5 +24,4 @@ at(stone_01,pos_3_2).
 clear(pos_4_2).
 goal(stone_01).
 step(1).
-step(2).
-step(3).
+
