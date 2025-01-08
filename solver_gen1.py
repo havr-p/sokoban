@@ -106,7 +106,7 @@ def generate_sokoban_lp_from_map(map_str, max_steps: int = 20):
     
      # Add step facts
     facts.append(f"#const maxsteps = {max_steps}.")
-    facts.extend(f"step({i})." for i in range(1, max_steps + 1))
+    facts.append(f"step({i}..{max_steps}).")
 
     return "\n".join(facts)
 
