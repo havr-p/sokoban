@@ -64,8 +64,8 @@ atgoal( S,Ti ) :- pushtogoal( P,S,Ppos,From,To,Dir,Ti ), stone( S ), movedir( Pp
 % 
 % 
 % INERTIA  >>>>>
-clear( L,Ti ) :- clear( L,Ti-1 ), not del( clear( L,Ti ) ), step(Ti).
-atgoal( S,Ti ) :- atgoal( S,Ti-1 ), not del( atgoal( S,Ti ) ), stone( S ), step(Ti).
+clear( L,Ti ) :- clear( L,Ti-1 ), not del( clear( L ), Ti ), step(Ti).
+atgoal( S,Ti ) :- atgoal( S,Ti-1 ), not del( atgoal( S ) ), stone( S ), step(Ti).
 at( T,L,Ti ) :- at( T,L,Ti-1 ), not del( at( T,L,Ti ) ), step(Ti).
 % <<<<<  INERTIA
 % 
@@ -94,8 +94,6 @@ preconditions_pg( P,S,Ppos,From,To,Dir,Ti ) :- at( P,Ppos,Ti-1 ), at( S,From,Ti-
 goalreached :- step(S), N = #count{ X,T : atgoal(X,T) , goal(X) }, N = #count{ X : goal(X) }.
 :- not goalreached.
 
-% Gringo directives to show / hide particular literals
-%#hide.
 #show pushtonongoal/7.
 #show move/5.
 #show pushtogoal/7.
