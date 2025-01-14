@@ -13,54 +13,47 @@ sokoban(sokoban).
 crate(crate2).
 crate(crate1).
 
-% Локации
-location(l1;l2;l5;l6;l9;l10;l11;l12;l13;l14;l15;l16;l17;l18;l19;l20).
+% Locations (grid style, left to right, top to bottom)
+location(l1;l2;l3;l4;l5;l6;l7;
+        l8;l9;l10;l11;l12;l13;l14;
+        l15;l16;l17;l18;l19;l20;l21;
+        l22;l23;l24;l25;l26;l27;l28;
+        l29;l30;l31;l32;l33;l34;l35;
+        l36;l37;l38;l39;l40;l41;l42;
+        l43;l44;l45;l46;l47;l48;l49).
 
-% Горизонтальные связи
-leftOf(l1,l2).
-leftOf(l5,l6).
-leftOf(l9,l10). leftOf(l10,l11). leftOf(l11,l12).
-leftOf(l13,l14). leftOf(l14,l15). leftOf(l15,l16).
-leftOf(l17,l18). leftOf(l18,l19). leftOf(l19,l20).
+% Horizontal connections (leftOf)
+leftOf(l30,l31). leftOf(l31,l32). leftOf(l32,l33). leftOf(l33,l34).
+leftOf(l36,l37). leftOf(l37,l38). leftOf(l38,l39). leftOf(l39,l40). leftOf(l40,l41).
+leftOf(l43,l44). leftOf(l44,l45). leftOf(l45,l46). leftOf(l46,l47). leftOf(l47,l48).
 
-% Вертикальные связи
-below(l5,l1). below(l6,l2).
-below(l9,l5). below(l10,l6).
-below(l13,l9).  below(l14,l10). below(l15,l11). below(l16,l12).
-below(l17,l13). below(l18,l14).
-below(15,19). below(16,20).
+% Vertical connections (below)
+below(l29,l22). below(l30,l23). below(l31,l24). below(l32,l25). below(l33,l26). below(l34,l27).
+below(l36,l29). below(l37,l30). below(l38,l31). below(l39,l32). below(l40,l33). below(l41,l34).
+below(l43,l36). below(l44,l37). below(l45,l38). below(l46,l39). below(l47,l40). below(l48,l41).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 3) НАЧАЛЬНОЕ СОСТОЯНИЕ (ВМЕСТО holds(...) => at(...,0)/clear(...,0))
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Initial state
+at(sokoban, l37, 0).  % S position
+at(crate1, l39, 0).   % C position
 
-% Сокобан и ящик на шагах T=0
-at(sokoban, l10, 0).
-at(crate2,  l15, 0).
-at(crate1,  l13, 0).
+% Clear locations initially
+clear(l30, 0).
+clear(l31, 0).
+clear(l32, 0).
+clear(l33, 0).
+clear(l34, 0).
+clear(l36, 0).
+clear(l40, 0).
+clear(l41, 0).
+clear(l43, 0).
+clear(l44, 0).
+clear(l45, 0).
+clear(l46, 0).
+clear(l47, 0).
+clear(l48, 0).
 
-% Какие локации свободны изначально (T=0)
-clear(l1, 0).
-clear(l2, 0).
-clear(l5, 0).
-clear(l6, 0).
-clear(l9, 0).
-clear(l11, 0).
-clear(l12, 0).
-clear(l14, 0).
-clear(l16, 0).
-clear(l17, 0).
-clear(l18, 0).
-clear(l19, 0).
-clear(l20, 0).
-
-% ВАЖНО: l10 и l15 НЕ свободны, т.к. там sokoban и crate2.
-% По умолчанию не пишем clear(l10,0) и clear(l15,0).
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 4) ЦЕЛЬ: ЯЩИК В L2 (ХОТЯ БЫ В ОДИН МОМЕНТ ВРЕМЕНИ)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-goal :- at(crate2, l2, T), at(crate1, l1, T), time(T).
+% Goal state
+goal :- at(crate1, l31, T), time(T).
 :- not goal.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
