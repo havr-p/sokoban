@@ -145,6 +145,7 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str):
 
     # Run solver and print solution
     domain_file = "sokoban.lp"  # Path to the file with ASP rules
+    #TODO: make it find one and optimal solution
     solution = run_and_format_solution(domain_file, map_str, 50)
     print("\nSolution steps:")
     print(solution)
