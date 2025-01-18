@@ -1,218 +1,173 @@
-player(player_01).
-stone(stone_01).
-stone(stone_02).
-stone(stone_03).
-stone(stone_04).
-isnongoal(pos_2_2).
-isnongoal(pos_3_2).
-isnongoal(pos_4_2).
-isnongoal(pos_5_2).
-isnongoal(pos_6_2).
-isgoal(pos_7_2).
-isgoal(pos_8_2).
-isnongoal(pos_2_3).
-isnongoal(pos_3_3).
-isnongoal(pos_4_3).
-isnongoal(pos_5_3).
-isgoal(pos_7_3).
-isgoal(pos_8_3).
-isnongoal(pos_2_4).
-isnongoal(pos_3_4).
-isnongoal(pos_4_4).
-isnongoal(pos_5_4).
-isnongoal(pos_7_4).
-isnongoal(pos_8_4).
-isnongoal(pos_2_5).
-isnongoal(pos_3_5).
-isnongoal(pos_6_5).
-isnongoal(pos_7_5).
-isnongoal(pos_8_5).
-isnongoal(pos_2_6).
-isnongoal(pos_3_6).
-isnongoal(pos_4_6).
-isnongoal(pos_5_6).
-isnongoal(pos_6_6).
-isnongoal(pos_7_6).
-isnongoal(pos_8_6).
-isnongoal(pos_2_7).
-isnongoal(pos_3_7).
-isnongoal(pos_7_7).
-isnongoal(pos_8_7).
-isnongoal(pos_1_1).
-isnongoal(pos_2_1).
-isnongoal(pos_3_1).
-isnongoal(pos_4_1).
-isnongoal(pos_5_1).
-isnongoal(pos_6_1).
-isnongoal(pos_7_1).
-isnongoal(pos_8_1).
-isnongoal(pos_9_1).
-isnongoal(pos_1_2).
-isnongoal(pos_9_2).
-isnongoal(pos_1_3).
-isnongoal(pos_6_3).
-isnongoal(pos_9_3).
-isnongoal(pos_1_4).
-isnongoal(pos_6_4).
-isnongoal(pos_9_4).
-isnongoal(pos_1_5).
-isnongoal(pos_4_5).
-isnongoal(pos_5_5).
-isnongoal(pos_9_5).
-isnongoal(pos_1_6).
-isnongoal(pos_9_6).
-isnongoal(pos_1_7).
-isnongoal(pos_4_7).
-isnongoal(pos_5_7).
-isnongoal(pos_6_7).
-isnongoal(pos_9_7).
-isnongoal(pos_1_8).
-isnongoal(pos_2_8).
-isnongoal(pos_3_8).
-isnongoal(pos_4_8).
-isnongoal(pos_5_8).
-isnongoal(pos_6_8).
-isnongoal(pos_7_8).
-isnongoal(pos_8_8).
-isnongoal(pos_9_8).
-goal(stone_01).
-goal(stone_02).
-goal(stone_03).
-goal(stone_04).
-at(player_01,pos_6_5).
-at(stone_01,pos_3_2).
-at(stone_02,pos_7_2).
-at(stone_03,pos_4_3).
-at(stone_04,pos_3_4).
-clear(pos_2_2).
-clear(pos_4_2).
-clear(pos_5_2).
-clear(pos_6_2).
-clear(pos_8_2).
-clear(pos_2_3).
-clear(pos_3_3).
-clear(pos_5_3).
-clear(pos_7_3).
-clear(pos_8_3).
-clear(pos_2_4).
-clear(pos_4_4).
-clear(pos_5_4).
-clear(pos_7_4).
-clear(pos_8_4).
-clear(pos_2_5).
-clear(pos_3_5).
-clear(pos_7_5).
-clear(pos_8_5).
-clear(pos_2_6).
-clear(pos_3_6).
-clear(pos_4_6).
-clear(pos_5_6).
-clear(pos_6_6).
-clear(pos_7_6).
-clear(pos_8_6).
-clear(pos_2_7).
-clear(pos_3_7).
-clear(pos_7_7).
-clear(pos_8_7).
-movedir(pos_2_2,pos_3_2,dir_right).
-movedir(pos_2_2,pos_2_3,dir_up).
-movedir(pos_3_2,pos_4_2,dir_right).
-movedir(pos_3_2,pos_2_2,dir_left).
-movedir(pos_3_2,pos_3_3,dir_up).
-movedir(pos_4_2,pos_5_2,dir_right).
-movedir(pos_4_2,pos_3_2,dir_left).
-movedir(pos_4_2,pos_4_3,dir_up).
-movedir(pos_5_2,pos_6_2,dir_right).
-movedir(pos_5_2,pos_4_2,dir_left).
-movedir(pos_5_2,pos_5_3,dir_up).
-movedir(pos_6_2,pos_7_2,dir_right).
-movedir(pos_6_2,pos_5_2,dir_left).
-movedir(pos_7_2,pos_8_2,dir_right).
-movedir(pos_7_2,pos_6_2,dir_left).
-movedir(pos_7_2,pos_7_3,dir_up).
-movedir(pos_8_2,pos_7_2,dir_left).
-movedir(pos_8_2,pos_8_3,dir_up).
-movedir(pos_2_3,pos_3_3,dir_right).
-movedir(pos_2_3,pos_2_2,dir_down).
-movedir(pos_2_3,pos_2_4,dir_up).
-movedir(pos_3_3,pos_4_3,dir_right).
-movedir(pos_3_3,pos_2_3,dir_left).
-movedir(pos_3_3,pos_3_2,dir_down).
-movedir(pos_3_3,pos_3_4,dir_up).
-movedir(pos_4_3,pos_5_3,dir_right).
-movedir(pos_4_3,pos_3_3,dir_left).
-movedir(pos_4_3,pos_4_2,dir_down).
-movedir(pos_4_3,pos_4_4,dir_up).
-movedir(pos_5_3,pos_4_3,dir_left).
-movedir(pos_5_3,pos_5_2,dir_down).
-movedir(pos_5_3,pos_5_4,dir_up).
-movedir(pos_7_3,pos_8_3,dir_right).
-movedir(pos_7_3,pos_7_2,dir_down).
-movedir(pos_7_3,pos_7_4,dir_up).
-movedir(pos_8_3,pos_7_3,dir_left).
-movedir(pos_8_3,pos_8_2,dir_down).
-movedir(pos_8_3,pos_8_4,dir_up).
-movedir(pos_2_4,pos_3_4,dir_right).
-movedir(pos_2_4,pos_2_3,dir_down).
-movedir(pos_2_4,pos_2_5,dir_up).
-movedir(pos_3_4,pos_4_4,dir_right).
-movedir(pos_3_4,pos_2_4,dir_left).
-movedir(pos_3_4,pos_3_3,dir_down).
-movedir(pos_3_4,pos_3_5,dir_up).
-movedir(pos_4_4,pos_5_4,dir_right).
-movedir(pos_4_4,pos_3_4,dir_left).
-movedir(pos_4_4,pos_4_3,dir_down).
-movedir(pos_5_4,pos_4_4,dir_left).
-movedir(pos_5_4,pos_5_3,dir_down).
-movedir(pos_7_4,pos_8_4,dir_right).
-movedir(pos_7_4,pos_7_3,dir_down).
-movedir(pos_7_4,pos_7_5,dir_up).
-movedir(pos_8_4,pos_7_4,dir_left).
-movedir(pos_8_4,pos_8_3,dir_down).
-movedir(pos_8_4,pos_8_5,dir_up).
-movedir(pos_2_5,pos_3_5,dir_right).
-movedir(pos_2_5,pos_2_4,dir_down).
-movedir(pos_2_5,pos_2_6,dir_up).
-movedir(pos_3_5,pos_2_5,dir_left).
-movedir(pos_3_5,pos_3_4,dir_down).
-movedir(pos_3_5,pos_3_6,dir_up).
-movedir(pos_6_5,pos_7_5,dir_right).
-movedir(pos_6_5,pos_6_6,dir_up).
-movedir(pos_7_5,pos_8_5,dir_right).
-movedir(pos_7_5,pos_6_5,dir_left).
-movedir(pos_7_5,pos_7_4,dir_down).
-movedir(pos_7_5,pos_7_6,dir_up).
-movedir(pos_8_5,pos_7_5,dir_left).
-movedir(pos_8_5,pos_8_4,dir_down).
-movedir(pos_8_5,pos_8_6,dir_up).
-movedir(pos_2_6,pos_3_6,dir_right).
-movedir(pos_2_6,pos_2_5,dir_down).
-movedir(pos_2_6,pos_2_7,dir_up).
-movedir(pos_3_6,pos_4_6,dir_right).
-movedir(pos_3_6,pos_2_6,dir_left).
-movedir(pos_3_6,pos_3_5,dir_down).
-movedir(pos_3_6,pos_3_7,dir_up).
-movedir(pos_4_6,pos_5_6,dir_right).
-movedir(pos_4_6,pos_3_6,dir_left).
-movedir(pos_5_6,pos_6_6,dir_right).
-movedir(pos_5_6,pos_4_6,dir_left).
-movedir(pos_6_6,pos_7_6,dir_right).
-movedir(pos_6_6,pos_5_6,dir_left).
-movedir(pos_6_6,pos_6_5,dir_down).
-movedir(pos_7_6,pos_8_6,dir_right).
-movedir(pos_7_6,pos_6_6,dir_left).
-movedir(pos_7_6,pos_7_5,dir_down).
-movedir(pos_7_6,pos_7_7,dir_up).
-movedir(pos_8_6,pos_7_6,dir_left).
-movedir(pos_8_6,pos_8_5,dir_down).
-movedir(pos_8_6,pos_8_7,dir_up).
-movedir(pos_2_7,pos_3_7,dir_right).
-movedir(pos_2_7,pos_2_6,dir_down).
-movedir(pos_3_7,pos_2_7,dir_left).
-movedir(pos_3_7,pos_3_6,dir_down).
-movedir(pos_7_7,pos_8_7,dir_right).
-movedir(pos_7_7,pos_7_6,dir_down).
-movedir(pos_8_7,pos_7_7,dir_left).
-movedir(pos_8_7,pos_8_6,dir_down).
-#const maxsteps = 20.
-step(4..20).
+sokoban(sokoban).
+crate(crate_01).
+crate(crate_02).
+crate(crate_03).
+crate(crate_04).
+location(l1;l2;l3;l4;l5;l6;l7;l8;l9;l10;l11;l12;l13;l14;l15;l16;l17;l18;l19;l20;l21;l22;l23;l24;l25;l26;l27;l28;l29;l30;l31;l32;l33;l34;l35;l36;l37;l38;l39;l40;l41;l42;l43;l44;l45;l46;l47;l48;l49;l50;l51;l52;l53;l54;l55;l56;l57;l58;l59;l60;l61;l62;l63;l64;l65;l66;l67;l68;l69;l70;l71;l72).
+isgoal(l16;l17;l25;l26).
+isnongoal(l11;l12;l13;l14;l15;l20;l21;l22;l23;l29;l30;l31;l32;l34;l35;l38;l39;l42;l43;l44;l47;l48;l49;l50;l51;l52;l53;l56;l57;l61;l62).
+wall(l1;l2;l3;l4;l5;l6;l7;l8;l9;l10;l18;l19;l24;l27;l28;l33;l36;l37;l40;l41;l45;l46;l54;l55;l58;l59;l60;l63;l64;l65;l66;l67;l68;l69;l70;l71;l72).
+leftOf(l1, l2).
+below(l10, l1).
+leftOf(l2, l3).
+below(l11, l2).
+leftOf(l3, l4).
+below(l12, l3).
+leftOf(l4, l5).
+below(l13, l4).
+leftOf(l5, l6).
+below(l14, l5).
+leftOf(l6, l7).
+below(l15, l6).
+leftOf(l7, l8).
+below(l16, l7).
+leftOf(l8, l9).
+below(l17, l8).
+below(l18, l9).
+leftOf(l10, l11).
+below(l19, l10).
+leftOf(l11, l12).
+below(l20, l11).
+leftOf(l12, l13).
+below(l21, l12).
+leftOf(l13, l14).
+below(l22, l13).
+leftOf(l14, l15).
+below(l23, l14).
+leftOf(l15, l16).
+below(l24, l15).
+leftOf(l16, l17).
+below(l25, l16).
+leftOf(l17, l18).
+below(l26, l17).
+below(l27, l18).
+leftOf(l19, l20).
+below(l28, l19).
+leftOf(l20, l21).
+below(l29, l20).
+leftOf(l21, l22).
+below(l30, l21).
+leftOf(l22, l23).
+below(l31, l22).
+leftOf(l23, l24).
+below(l32, l23).
+leftOf(l24, l25).
+below(l33, l24).
+leftOf(l25, l26).
+below(l34, l25).
+leftOf(l26, l27).
+below(l35, l26).
+below(l36, l27).
+leftOf(l28, l29).
+below(l37, l28).
+leftOf(l29, l30).
+below(l38, l29).
+leftOf(l30, l31).
+below(l39, l30).
+leftOf(l31, l32).
+below(l40, l31).
+leftOf(l32, l33).
+below(l41, l32).
+leftOf(l33, l34).
+below(l42, l33).
+leftOf(l34, l35).
+below(l43, l34).
+leftOf(l35, l36).
+below(l44, l35).
+below(l45, l36).
+leftOf(l37, l38).
+below(l46, l37).
+leftOf(l38, l39).
+below(l47, l38).
+leftOf(l39, l40).
+below(l48, l39).
+leftOf(l40, l41).
+below(l49, l40).
+leftOf(l41, l42).
+below(l50, l41).
+leftOf(l42, l43).
+below(l51, l42).
+leftOf(l43, l44).
+below(l52, l43).
+leftOf(l44, l45).
+below(l53, l44).
+below(l54, l45).
+leftOf(l46, l47).
+below(l55, l46).
+leftOf(l47, l48).
+below(l56, l47).
+leftOf(l48, l49).
+below(l57, l48).
+leftOf(l49, l50).
+below(l58, l49).
+leftOf(l50, l51).
+below(l59, l50).
+leftOf(l51, l52).
+below(l60, l51).
+leftOf(l52, l53).
+below(l61, l52).
+leftOf(l53, l54).
+below(l62, l53).
+below(l63, l54).
+leftOf(l55, l56).
+below(l64, l55).
+leftOf(l56, l57).
+below(l65, l56).
+leftOf(l57, l58).
+below(l66, l57).
+leftOf(l58, l59).
+below(l67, l58).
+leftOf(l59, l60).
+below(l68, l59).
+leftOf(l60, l61).
+below(l69, l60).
+leftOf(l61, l62).
+below(l70, l61).
+leftOf(l62, l63).
+below(l71, l62).
+below(l72, l63).
+leftOf(l64, l65).
+leftOf(l65, l66).
+leftOf(l66, l67).
+leftOf(l67, l68).
+leftOf(l68, l69).
+leftOf(l69, l70).
+leftOf(l70, l71).
+leftOf(l71, l72).
+at(sokoban, l42, 0).
+at(crate_01, l22, 0).
+at(crate_02, l16, 0).
+at(crate_03, l30, 0).
+at(crate_04, l12, 0).
+clear(l11, 0).
+clear(l13, 0).
+clear(l14, 0).
+clear(l15, 0).
+clear(l17, 0).
+clear(l20, 0).
+clear(l21, 0).
+clear(l23, 0).
+clear(l25, 0).
+clear(l26, 0).
+clear(l29, 0).
+clear(l31, 0).
+clear(l32, 0).
+clear(l34, 0).
+clear(l35, 0).
+clear(l38, 0).
+clear(l39, 0).
+clear(l43, 0).
+clear(l44, 0).
+clear(l47, 0).
+clear(l48, 0).
+clear(l49, 0).
+clear(l50, 0).
+clear(l51, 0).
+clear(l52, 0).
+clear(l53, 0).
+clear(l56, 0).
+clear(l57, 0).
+clear(l61, 0).
+clear(l62, 0).
+#const maxsteps=10.
+time(0..maxsteps).

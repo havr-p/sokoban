@@ -53,7 +53,7 @@ def generate_sokoban_lp_from_map(map_str: str, max_steps: int = 10) -> str:
         facts.append(f"isgoal({';'.join(goal_list)}).")
     if nongoal_list:
         facts.append(f"isnongoal({';'.join(nongoal_list)}).")
-    if walls:
+    if walls_list:
         facts.append(f"wall({';'.join(walls_list)}).")
 
     for r in range(height):
@@ -65,7 +65,7 @@ def generate_sokoban_lp_from_map(map_str: str, max_steps: int = 10) -> str:
                 facts.append(f"leftOf(l{thisN}, l{rightN}).")
             if r + 1 < height and c < len(lines[r + 1]):
                 downN = cell_index(r + 1, c)
-                facts.append(f"below(l{thisN}, l{downN}).")
+                facts.append(f"below(l{downN}, l{thisN}).")
 
     if sokoban_pos is not None:
         sN = cell_index(*sokoban_pos)

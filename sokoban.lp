@@ -3,6 +3,8 @@
 %% 4) ЦЕЛЬ: ЯЩИК В L2 (ХОТЯ БЫ В ОДИН МОМЕНТ ВРЕМЕНИ)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 :- isgoal(L), isnongoal(L).
+:- isgoal(L), wall(L).
+:- clear(L,T), time(T), wall(L).
 
 % reachedGoal(C) — говорит, что ящик C
 % в некоторый момент T оказался в клетке L, помеченной как isgoal(L).
@@ -15,7 +17,7 @@ reachedGoal(C) :- at(C,L,T), isgoal(L), time(T).
 
 % Если сокобан S находится в двух разных локациях L1 и L2
 % в один и тот же момент T, это запрещено.
-:- at(sokoban, L1, T), at(sokoban, L2, T), L1 != L2.
+:- sokoban(sokoban), at(sokoban, L1, T), at(sokoban, L2, T), L1 != L2.
 
 % crate C не может находиться в (L1) и (L2) в момент T, если L1 != L2
 :- crate(C), at(C, L1, T), at(C, L2, T), L1 != L2.
@@ -24,7 +26,7 @@ reachedGoal(C) :- at(C,L,T), isgoal(L), time(T).
 :- crate(C1), crate(C2), C1 != C2, at(C1, L, T), at(C2, L, T).
 
 % Сокобан и ящик не могут находиться в одной клетке L в момент T
-:- crate(C), at(C, L, T), at(sokoban, L, T).
+:- crate(C), sokoban(sokoban), at(C, L, T), at(sokoban, L, T).
 
 % Стена слева или справа от клетки L
 adjacentWallLeftOrRight(L) :- wall(L1), leftOf(L, L1).
@@ -43,8 +45,22 @@ deadlock(L) :-
     not isgoal(L).
 
 % Запрет на перемещение ящика в тупиковую клетку
-:- do(push(C, L1, L2), T), deadlock(L2).
-:- do(push(C, L1, L2), T), wall(L2).
+:- do(pushLeft(S,X,Y,Z,C), T), deadlock(Z).
+:- do(pushRight(S,X,Y,Z,C), T), deadlock(Z).
+:- do(pushUp(S,X,Y,Z,C), T), deadlock(Z).
+:- do(pushDown(S,X,Y,Z,C), T), deadlock(Z).
+
+% Запрет на перемещение ящика в стену
+:- do(pushLeft(S,X,Y,Z,C), T), wall(Z).
+:- do(pushRight(S,X,Y,Z,C), T), wall(Z).
+:- do(pushUp(S,X,Y,Z,C), T), wall(Z).
+:- do(pushDown(S,X,Y,Z,C), T), wall(Z).
+
+% Запрет на перемещение sokoban в стену
+:- do(moveLeft(S,X,Y), T), wall(Y).
+:- do(moveRight(S,X,Y), T), wall(Y).
+:- do(moveUp(S,X,Y), T), wall(Y).
+:- do(moveDown(S,X,Y), T), wall(Y).
    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 5) ВЫБОР ДЕЙСТВИЙ: ровно 1 действие на шаг
@@ -60,6 +76,12 @@ deadlock(L) :-
 
 { do(M,T) : move(M) } 1 :- time(T), T < maxsteps.
 
+goal_achieved(T) :- 
+    time(T),
+    not crate(C) : crate(C), not reachedGoal(C).
+
+:- do(M,T), T+1 < maxsteps, not do(_, T+1), not goal_achieved(T).
+:- do(_, T2), T1 < T2, not do(_, T1), time(T1), time(T2).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 6) ОПРЕДЕЛЕНИЕ "move(M)" (ГЕНЕРАЦИЯ ВСЕХ ВОЗМОЖНЫХ ДЕЙСТВИЙ)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
