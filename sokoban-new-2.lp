@@ -1,60 +1,90 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 1) ПАРАМЕТРЫ И ВРЕМЯ
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#const maxsteps=10.
+sokoban(sokoban).
+crate(crate_01).
+crate(crate_02).
+crate(crate_03).
+location(l1;l2;l3;l4;l5;l6;l7;l8;l9;l10;l11;l12;l13;l14;l15;l16;l17;l18;l19;l20;l21;l22;l23;l24;l25;l26;l27;l28;l29;l30).
+isgoal(l8;l17;l20).
+isnongoal(l1;l2;l3;l4;l5;l6;l7;l9;l10;l11;l12;l13;l14;l15;l16;l18;l19;l21;l22;l23;l24;l25;l26;l27;l28;l29;l30).
+leftOf(l1, l2).
+below(l1, l7).
+leftOf(l2, l3).
+below(l2, l8).
+leftOf(l3, l4).
+below(l3, l9).
+leftOf(l4, l5).
+below(l4, l10).
+leftOf(l5, l6).
+below(l5, l11).
+below(l6, l12).
+leftOf(l7, l8).
+below(l7, l13).
+leftOf(l8, l9).
+below(l8, l14).
+leftOf(l9, l10).
+below(l9, l15).
+leftOf(l10, l11).
+below(l10, l16).
+leftOf(l11, l12).
+below(l11, l17).
+below(l12, l18).
+leftOf(l13, l14).
+below(l13, l19).
+leftOf(l14, l15).
+below(l14, l20).
+leftOf(l15, l16).
+below(l15, l21).
+leftOf(l16, l17).
+below(l16, l22).
+leftOf(l17, l18).
+below(l17, l23).
+below(l18, l24).
+leftOf(l19, l20).
+below(l19, l25).
+leftOf(l20, l21).
+below(l20, l26).
+leftOf(l21, l22).
+below(l21, l27).
+leftOf(l22, l23).
+below(l22, l28).
+leftOf(l23, l24).
+below(l23, l29).
+below(l24, l30).
+leftOf(l25, l26).
+leftOf(l26, l27).
+leftOf(l27, l28).
+leftOf(l28, l29).
+leftOf(l29, l30).
+at(sokoban, l8, 0).
+at(crate_00, l16, 0).
+at(crate_01, l14, 0).
+at(crate_02, l15, 0).
+clear(l9, 0).
+clear(l10, 0).
+clear(l11, 0).
+clear(l17, 0).
+clear(l20, 0).
+clear(l21, 0).
+clear(l22, 0).
+clear(l23, 0).
+#const maxsteps=20.
 time(0..maxsteps).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 2) ОБЪЕКТЫ, ЛОКАЦИИ, СТАТИЧЕСКИЕ ОТНОШЕНИЯ
+%% 2) ОПРЕДЕЛЕНИЕ ДОСТИЖЕНИЯ ЦЕЛИ КАЖДЫМ ЯЩИКОМ
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+:- isgoal(L), isnongoal(L).
 
-% У нас один сокобан, один ящик
-sokoban(sokoban).
-crate(crate2).
-crate(crate1).
+% reachedGoal(C) — говорит, что ящик C
+% в некоторый момент T оказался в клетке L, помеченной как isgoal(L).
+reachedGoal(C) :- at(C,L,T), isgoal(L), time(T).
 
-% Locations (grid style, left to right, top to bottom)
-location(l1;l2;l3;l4;l5;l6;l7;
-        l8;l9;l10;l11;l12;l13;l14;
-        l15;l16;l17;l18;l19;l20;l21;
-        l22;l23;l24;l25;l26;l27;l28;
-        l29;l30;l31;l32;l33;l34;l35;
-        l36;l37;l38;l39;l40;l41;l42;
-        l43;l44;l45;l46;l47;l48;l49).
-
-% Horizontal connections (leftOf)
-leftOf(l30,l31). leftOf(l31,l32). leftOf(l32,l33). leftOf(l33,l34).
-leftOf(l36,l37). leftOf(l37,l38). leftOf(l38,l39). leftOf(l39,l40). leftOf(l40,l41).
-leftOf(l43,l44). leftOf(l44,l45). leftOf(l45,l46). leftOf(l46,l47). leftOf(l47,l48).
-
-% Vertical connections (below)
-below(l29,l22). below(l30,l23). below(l31,l24). below(l32,l25). below(l33,l26). below(l34,l27).
-below(l36,l29). below(l37,l30). below(l38,l31). below(l39,l32). below(l40,l33). below(l41,l34).
-below(l43,l36). below(l44,l37). below(l45,l38). below(l46,l39). below(l47,l40). below(l48,l41).
-
-% Initial state
-at(sokoban, l37, 0).  % S position
-at(crate1, l39, 0).   % C position
-
-% Clear locations initially
-clear(l30, 0).
-clear(l31, 0).
-clear(l32, 0).
-clear(l33, 0).
-clear(l34, 0).
-clear(l36, 0).
-clear(l40, 0).
-clear(l41, 0).
-clear(l43, 0).
-clear(l44, 0).
-clear(l45, 0).
-clear(l46, 0).
-clear(l47, 0).
-clear(l48, 0).
-
-% Goal state
-goal :- at(crate1, l31, T), time(T).
-:- not goal.
+% Требуем, чтобы для КАЖДОГО ящика было доказуемо reachedGoal(C).
+% Если найдётся хотя бы один ящик, у которого reachedGoal(C) не выполнится,
+% программа станет непротиворечивой только при нарушении этого правила, что нельзя.
+:- crate(C), not reachedGoal(C).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 5) ВЫБОР ДЕЙСТВИЙ: ровно 1 действие на шаг
@@ -68,7 +98,7 @@ goal :- at(crate1, l31, T), time(T).
 % Способ Б: напрямую "moveLeft(S,X,Y,T)" как действие. 
 % Я покажу способ А, чтобы было ближе к классической записи:
 
-{ do(M,T) : move(M) } 1 :- time(T), T < maxsteps.
+0 { do(M,T) : move(M) } 1 :- time(T), T < maxsteps.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 6) ОПРЕДЕЛЕНИЕ "move(M)" (ГЕНЕРАЦИЯ ВСЕХ ВОЗМОЖНЫХ ДЕЙСТВИЙ)
@@ -448,7 +478,7 @@ clear(X,T+1) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 10) МИНИМИЗАЦИЯ КОЛИЧЕСТВА ШАГОВ
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#minimize { 1,T : do(M,T) }.
+#minimize { 1 : do(M,T) }.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 11) ВЫВОД ДЕЙСТВИЙ

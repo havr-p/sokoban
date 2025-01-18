@@ -6,7 +6,7 @@ from typing import Dict, Set, List, Tuple
 from tabulate import tabulate
 import os
 
-from solver_gen1 import generate_sokoban_lp_from_map, run_and_format_solution, visualize_solution
+from solver import generate_sokoban_lp_from_map, run_and_format_solution, visualize_solution
 
 # how to run: pytest map_test.py --tb=short -v -s
 
@@ -120,10 +120,10 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str):
     with open(actual_output_path, 'w', encoding='utf-8') as file:
         file.write(actual_output)
     
-    try:
-        validate_asp_encoding(map_str, actual_output)
-    except AssertionError as e:
-        print(f"\nTest failed for {map_file}! Differences found:\n\n{str(e)}")
+    # try:
+    #     validate_asp_encoding(map_str, actual_output)
+    # except AssertionError as e:
+    #     print(f"\nTest failed for {map_file}! Differences found:\n\n{str(e)}")
     
     def filter_facts(output: str) -> Set[str]:
         """Filters out lines starting with 'step(' and '#const maxsteps'."""
@@ -144,16 +144,16 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str):
     
 
     # Run solver and print solution
-    domain_file = "sok.lp"  # Path to the file with ASP rules
+    domain_file = "sokoban.lp"  # Path to the file with ASP rules
     solution = run_and_format_solution(domain_file, map_str, 20)
-    #print("\nSolution steps:")
+    print("\nSolution steps:")
     print(solution)
 
     # Assuming initial_map is the map_str and solution_steps is the parsed solution
     initial_map = map_str
     solution_steps = solution.splitlines()
 
-    maps = visualize_solution(initial_map, solution_steps)
-    for i, map_state in enumerate(maps):
-        print(f"\nAfter step {i}:")
-        print(map_state)
+    # maps = visualize_solution(initial_map, solution_steps)
+    # for i, map_state in enumerate(maps):
+    #     print(f"\nAfter step {i}:")
+    #     print(map_state)

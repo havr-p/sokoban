@@ -1,145 +1,446 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% SOKOBAN Rules (ASP)
-%%% Пример адаптации к чистому ASP синтаксису
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Определяем флюенты:
-fluent(free(L)) :- location(L).
-fluent(box_in(L)) :- location(L).
-fluent(sokoban_in(L)) :- location(L).
-fluent(reachable(A)) :- location(A).
-non_inertial(reachable(A)) :- location(A).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 4) ЦЕЛЬ: ЯЩИК В L2 (ХОТЯ БЫ В ОДИН МОМЕНТ ВРЕМЕНИ)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+:- isgoal(L), isnongoal(L).
 
-% Действия:
-action(push(From,D,To)) :-
-   location(From),
-   location(To),
-   step(_Sokoban,D,From),
-   straight_connection(From,To,D,_).
+% reachedGoal(C) — говорит, что ящик C
+% в некоторый момент T оказался в клетке L, помеченной как isgoal(L).
+reachedGoal(C) :- at(C,L,T), isgoal(L), time(T).
 
-% Применимость действия (ранее указывалась через списки):
-% Теперь просто указываем условия в теле правила.
-executable(push(From,D,To)) :-
-   action(push(From,D,To)),
-   step(PushPlace,D,From),
-   reachable(PushPlace),
-   box_in(From),
-   straight_connection(From,To,D,Path),
-   path_no_boxes(Path).
+% Требуем, чтобы для КАЖДОГО ящика было доказуемо reachedGoal(C).
+% Если найдётся хотя бы один ящик, у которого reachedGoal(C) не выполнится,
+% программа станет непротиворечивой только при нарушении этого правила, что нельзя.
+:- crate(C), not reachedGoal(C).
 
-% path_no_boxes(Path) должна гарантировать, что на пути нет коробок.
-% Ранее вы пытались делать это через списки, теперь предположим,
-% что straight_connection/4 порождает факты path_cell(Path,Cell), и мы проверяем,
-% что на всех path_cell(Path,Cell) нет box_in(Cell).
-% Пример (нужно адаптировать под вашу логику):
-path_no_boxes(Path) :-
-   not path_contains_box(Path).
+% Если сокобан S находится в двух разных локациях L1 и L2
+% в один и тот же момент T, это запрещено.
+:- at(sokoban, L1, T), at(sokoban, L2, T), L1 != L2.
 
-path_contains_box(Path) :-
-   path_cell(Path,L),
-   box_in(L).
+% crate C не может находиться в (L1) и (L2) в момент T, если L1 != L2
+:- crate(C), at(C, L1, T), at(C, L2, T), L1 != L2.
 
-% Эффекты действия push:
-causes(push(From,D,To), box_in(To)) :-
-   action(push(From,D,To)).
+% Два ящика C1 и C2 не могут оказаться в одной клетке L в момент T
+:- crate(C1), crate(C2), C1 != C2, at(C1, L, T), at(C2, L, T).
 
-causes(push(From,D,To), not box_in(From)) :-
-   action(push(From,D,To)).
+% Сокобан и ящик не могут находиться в одной клетке L в момент T
+:- crate(C), at(C, L, T), at(sokoban, L, T).
 
-causes(push(From,D,To), sokoban_in(S)) :-
-   action(push(From,D,To)),
-   step(S,D,To).
+% Стена слева или справа от клетки L
+adjacentWallLeftOrRight(L) :- wall(L1), leftOf(L, L1).
+adjacentWallLeftOrRight(L) :- wall(L1), leftOf(L1, L).
 
-causes(push(From,D,To), free(From)) :-
-   action(push(From,D,To)),
-   not step(From,D,To).
+% Стена сверху или снизу от клетки L
+adjacentWallAboveOrBelow(L) :- wall(L2), below(L, L2).
+adjacentWallAboveOrBelow(L) :- wall(L2), below(L2, L).
 
-causes(push(From,D,To), free(S)) :-
-   action(push(From,D,To)),
-   location(S),
-   S != To,
-   not step(S,D,To),
-   sokoban_in(S).
-
-% Статические законы:
-caused([sokoban_in(A)],reachable(A)) :-
-    location(A).
-
-caused([reachable(B),free(C)],reachable(C)) :-
-    location(B),location(C),
-    step(B,D,C),direction(D).
-
-caused([free(L)], not box_in(L)) :- location(L).
-caused([free(L)], not sokoban_in(L)) :- location(L).
-
-caused([sokoban_in(L)], not free(L)) :- location(L).
-caused([sokoban_in(L)], not box_in(L)) :- location(L).
-caused([sokoban_in(L1)], not sokoban_in(L2)) :-
-    location(L1),location(L2),L1 != L2.
-
-caused([box_in(L)], not free(L)) :- location(L).
-caused([box_in(L)], not sokoban_in(L)) :- location(L).
-
-% Инициализация:
-initially(box_in(L)) :- location(L), box(L).
-initially(not box_in(L)) :- location(L), not box(L).
-
-initially(sokoban_in(L)) :- location(L), sokoban(L).
-initially(not sokoban_in(L)) :- location(L), not sokoban(L).
-
-initially(free(L)) :- location(L), not box(L), not sokoban(L).
-initially(not free(L)) :- location(L), box(L).
-initially(not free(L)) :- location(L), sokoban(L).
-
-initially(reachable(A)) :- location(A), sokoban(A).
-initially(reachable(L)) :-
+% Клетка считается тупиком, если она соседствует с двумя стенами (слева/справа и сверху/снизу),
+% а также сама не является целью
+deadlock(L) :-
     location(L),
-    sokoban(S),
-    reach_path(S,L,[S]).
-initially(not reachable(L)) :-
-    location(L),
-    not initially(reachable(L)).
+    adjacentWallLeftOrRight(L),
+    adjacentWallAboveOrBelow(L),
+    not isgoal(L).
 
-% Цель
-goal(box_in(L)) :- location(L), solution(L).
+% Запрет на перемещение ящика в тупиковую клетку
+:- do(push(C, L1, L2), T), deadlock(L2).
+:- do(push(C, L1, L2), T), wall(L2).
+   
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 5) ВЫБОР ДЕЙСТВИЙ: ровно 1 действие на шаг
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Для каждого T < maxsteps: выбираем 1 из всех move/push (с подходящими параметрами),
+% или вообще никакого действия, если хотите - тогда меняйте 1{..}1 на 0..1{..}.
+%
+% Но ниже мы генерим "граничное" множество ground-действий через правила.
+% 
+% Способ А: отдельный предикат do(Action,T). 
+% Способ Б: напрямую "moveLeft(S,X,Y,T)" как действие. 
+% Я покажу способ А, чтобы было ближе к классической записи:
 
-% Вспомогательные предикаты:
-% reach_path/3 - изначально был prolog-стиль, его нужно заменить или 
-% закодировать в ASP-стиле. Ниже просто заглушка.
-% В реальном ASP вам нужно будет явно задавать факты о достижимости.
-reach_path(From,From,_Visited).
-reach_path(From,To,Visited) :-
-    step(From,_,Int),
-    not member(Int,Visited),
-    not box(Int),
-    reach_path(Int,To,[Int|Visited]).
+{ do(M,T) : move(M) } 1 :- time(T), T < maxsteps.
 
-% member/2 тоже Prolog-предикат. В ASP надо либо задавать множество
-% посещённых как факты, либо иначе кодировать достижимость. Ниже - заглушка.
-% Для ASP можно вообще убрать такой код или заменить на генерацию путей и проверку условий.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 6) ОПРЕДЕЛЕНИЕ "move(M)" (ГЕНЕРАЦИЯ ВСЕХ ВОЗМОЖНЫХ ДЕЙСТВИЙ)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Мы не пишем action(...), а сразу "move(...)" — любой ground-term:
+% moveLeft(S,X,Y), pushLeft(S,X,Y,Z,C), etc.
 
-% location/1:
-location(Loc) :-
-   top(L1,L2), (Loc=L1; Loc=L2);
-   right(L3,L4), (Loc=L3; Loc=L4).
+% --- moveLeft ---
+move(moveLeft(S,X,Y)) :-
+  sokoban(S),
+  location(X;Y),
+  leftOf(Y,X).
 
-direction(up).
-direction(left).
-direction(right).
-direction(down).
+% --- moveRight ---
+move(moveRight(S,X,Y)) :-
+  sokoban(S),
+  location(X;Y),
+  leftOf(X,Y).
 
-% straight_connection - тоже была prolog-рекурсия. Нужно заранее задать все пути или 
-% переписать логику. Здесь просто заглушка для примера:
-straight_connection(From,From,_D,Path) :- Path=FromPath, FromPath=From.
-straight_connection(From,To,D,Path) :-
-   step(From,D,Int),
-   % В реальном ASP нельзя просто "Path=[From|Rest]" - нужно генерировать факты типа:
-   path_cell(Path,From),
-   straight_connection(Int,To,D,Path).
+% --- moveUp ---
+move(moveUp(S,X,Y)) :-
+  sokoban(S),
+  location(X;Y),
+  below(X,Y).
 
-step(From,right,To) :- right(From,To).
-step(From,left,To) :- right(To,From).
-step(From,up,To) :- top(From,To).
-step(From,down,To) :- top(To,From).
+% --- moveDown ---
+move(moveDown(S,X,Y)) :-
+  sokoban(S),
+  location(X;Y),
+  below(Y,X).
 
-% neq/2 заменен на сравнение !=
+% --- pushLeft ---
+move(pushLeft(S,X,Y,Z,C)) :-
+  sokoban(S), crate(C),
+  location(X;Y;Z),
+  leftOf(Y,X),
+  leftOf(Z,Y).
+
+% --- pushRight ---
+move(pushRight(S,X,Y,Z,C)) :-
+  sokoban(S), crate(C),
+  location(X;Y;Z),
+  leftOf(X,Y),
+  leftOf(Y,Z).
+
+% --- pushUp ---
+move(pushUp(S,X,Y,Z,C)) :-
+  sokoban(S), crate(C),
+  location(X;Y;Z),
+  below(X,Y),
+  below(Y,Z).
+
+% --- pushDown ---
+move(pushDown(S,X,Y,Z,C)) :-
+  sokoban(S), crate(C),
+  location(X;Y;Z),
+  below(Y,X),
+  below(Z,Y).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 7) ИНЕРЦИЯ (БЕЗ holds(...), a at(...,T) -> at(...,T+1)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% "Если объект O был в локации L в момент T, и нет доказательства,
+%  что он перестал там быть в момент T+1, то он остаётся."
+at(O,L,T+1) :-
+  at(O,L,T),
+  not -at(O,L,T+1),
+  time(T).
+
+% Точно так же для clear(L,T)
+clear(L,T+1) :-
+  clear(L,T),
+  not -clear(L,T+1),
+  time(T).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 8) ПРЕДУСЛОВИЯ (ОГРАНИЧЕНИЯ)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Если действие moveLeft(S,X,Y) выбрано, то sokoban S ДОЛЖЕН находиться в X на шаге T,
+% и Y ДОЛЖНО быть clear на шаге T.
+
+% moveLeft
+:- do(moveLeft(S,X,Y), T), not at(S,X,T).
+:- do(moveLeft(S,X,Y), T), not clear(Y,T).
+
+% moveRight
+:- do(moveRight(S,X,Y), T), not at(S,X,T).
+:- do(moveRight(S,X,Y), T), not clear(Y,T).
+
+% moveUp
+:- do(moveUp(S,X,Y), T), not at(S,X,T).
+:- do(moveUp(S,X,Y), T), not clear(Y,T).
+
+% moveDown
+:- do(moveDown(S,X,Y), T), not at(S,X,T).
+:- do(moveDown(S,X,Y), T), not clear(Y,T).
+
+% pushLeft
+:- do(pushLeft(S,X,Y,Z,C), T), not at(S,X,T).
+:- do(pushLeft(S,X,Y,Z,C), T), not at(C,Y,T).
+:- do(pushLeft(S,X,Y,Z,C), T), not clear(Z,T).
+
+% pushRight
+:- do(pushRight(S,X,Y,Z,C), T), not at(S,X,T).
+:- do(pushRight(S,X,Y,Z,C), T), not at(C,Y,T).
+:- do(pushRight(S,X,Y,Z,C), T), not clear(Z,T).
+
+% pushUp
+:- do(pushUp(S,X,Y,Z,C), T), not at(S,X,T).
+:- do(pushUp(S,X,Y,Z,C), T), not at(C,Y,T).
+:- do(pushUp(S,X,Y,Z,C), T), not clear(Z,T).
+
+% pushDown
+:- do(pushDown(S,X,Y,Z,C), T), not at(S,X,T).
+:- do(pushDown(S,X,Y,Z,C), T), not at(C,Y,T).
+:- do(pushDown(S,X,Y,Z,C), T), not clear(Z,T).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 9) ПОЛОЖИТЕЛЬНЫЕ И ОТРИЦАТЕЛЬНЫЕ ЭФФЕКТЫ
+%%    (НЕТ holds(...) => ЯВНО at(...,T+1) И -at(...,T+1)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%========== moveLeft ==========
+
+% (а) Если sokoban шёл слева-направо, то на T+1 сокобан в Y
+at(S, Y, T+1) :-
+  do(moveLeft(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+% (б) Убираем "sokoban в X" на T+1
+-at(S, X, T+1) :-
+  do(moveLeft(S,X,Y), T),
+  at(S,X,T).
+
+% (в) Старая клетка X освобождается
+clear(X,T+1) :-
+  do(moveLeft(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+% (г) Новая клетка Y перестаёт быть свободной
+-clear(Y,T+1) :-
+  do(moveLeft(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+%========== moveRight ==========
+
+at(S,Y,T+1) :-
+  do(moveRight(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+-at(S,X,T+1) :-
+  do(moveRight(S,X,Y), T),
+  at(S,X,T).
+
+clear(X,T+1) :-
+  do(moveRight(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+-clear(Y,T+1) :-
+  do(moveRight(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+%========== moveUp ==========
+
+at(S,Y,T+1) :-
+  do(moveUp(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+-at(S,X,T+1) :-
+  do(moveUp(S,X,Y), T),
+  at(S,X,T).
+
+clear(X,T+1) :-
+  do(moveUp(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+-clear(Y,T+1) :-
+  do(moveUp(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+%========== moveDown ==========
+
+at(S,Y,T+1) :-
+  do(moveDown(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+-at(S,X,T+1) :-
+  do(moveDown(S,X,Y), T),
+  at(S,X,T).
+
+clear(X,T+1) :-
+  do(moveDown(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+-clear(Y,T+1) :-
+  do(moveDown(S,X,Y), T),
+  at(S,X,T),
+  clear(Y,T).
+
+%========== pushLeft ==========
+
+% pushLeft(S,X,Y,Z,C): sokoban в X, ящик в Y, Z свободно,
+% толкаем ящик с Y на Z, а сокoban переходит с X на Y
+
+at(S, Y, T+1) :-
+  do(pushLeft(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-at(S,X,T+1) :-
+  do(pushLeft(S,X,Y,Z,C), T),
+  at(S,X,T).
+
+at(C, Z, T+1) :-
+  do(pushLeft(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-at(C,Y,T+1) :-
+  do(pushLeft(S,X,Y,Z,C), T),
+  at(C,Y,T).
+
+clear(X,T+1) :-
+  do(pushLeft(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+% Новая локация Z перестаёт быть свободной
+-clear(Z,T+1) :-
+  do(pushLeft(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+% Локация Y теперь будет занята сокобаном, так что
+% она перестаёт быть free
+-clear(Y,T+1) :-
+  do(pushLeft(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+%========== pushRight ==========
+
+at(S, Y, T+1) :-
+  do(pushRight(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-at(S,X,T+1) :-
+  do(pushRight(S,X,Y,Z,C), T),
+  at(S,X,T).
+
+at(C,Z,T+1) :-
+  do(pushRight(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-at(C,Y,T+1) :-
+  do(pushRight(S,X,Y,Z,C), T),
+  at(C,Y,T).
+
+clear(X,T+1) :-
+  do(pushRight(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-clear(Z,T+1) :-
+  do(pushRight(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-clear(Y,T+1) :-
+  do(pushRight(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+%========== pushUp ==========
+
+at(S,Y,T+1) :-
+  do(pushUp(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-at(S,X,T+1) :-
+  do(pushUp(S,X,Y,Z,C), T),
+  at(S,X,T).
+
+at(C,Z,T+1) :-
+  do(pushUp(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-at(C,Y,T+1) :-
+  do(pushUp(S,X,Y,Z,C), T),
+  at(C,Y,T).
+
+clear(X,T+1) :-
+  do(pushUp(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-clear(Z,T+1) :-
+  do(pushUp(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-clear(Y,T+1) :-
+  do(pushUp(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+%========== pushDown ==========
+
+at(S,Y,T+1) :-
+  do(pushDown(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-at(S,X,T+1) :-
+  do(pushDown(S,X,Y,Z,C), T),
+  at(S,X,T).
+
+at(C,Z,T+1) :-
+  do(pushDown(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-at(C,Y,T+1) :-
+  do(pushDown(S,X,Y,Z,C), T),
+  at(C,Y,T).
+
+clear(X,T+1) :-
+  do(pushDown(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-clear(Z,T+1) :-
+  do(pushDown(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+-clear(Y,T+1) :-
+  do(pushDown(S,X,Y,Z,C), T),
+  at(S,X,T),
+  at(C,Y,T),
+  clear(Z,T).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 10) МИНИМИЗАЦИЯ КОЛИЧЕСТВА ШАГОВ
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#minimize { 1,T : do(M,T) }.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 11) ВЫВОД ДЕЙСТВИЙ
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#show do/2.
