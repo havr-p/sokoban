@@ -67,5 +67,5 @@ clear(l20, 0).
 clear(l21, 0).
 clear(l22, 0).
 clear(l23, 0).
-#const maxsteps=10.
+#const maxsteps=13.
 time(0..maxsteps).

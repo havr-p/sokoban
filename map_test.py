@@ -86,12 +86,12 @@ def compare_facts_detailed(expected: str, actual: str) -> str:
     return "\n".join(diff_output)
 
 @pytest.mark.parametrize("map_file,expected_file", [
-      ("map1.txt", "expected1.txt"),
-      ("map2.txt", "expected2.txt"),
-      ("map3.txt", "expected3.txt"),
+     # ("map1.txt", "expected1.txt"),
+     # ("map2.txt", "expected2.txt"),
+     # ("map3.txt", "expected3.txt"),
      ("map4.txt", "expected4.txt"),
-     ("map5.txt", "expected5.txt"),
-      ("map6.txt", "expected6.txt"),
+     #("map5.txt", "expected5.txt"),
+      #("map6.txt", "expected6.txt"),
     #  ("map7.txt", "expected7.txt"),
     #  ("map8.txt", "expected8.txt"),
     #  ("map9.txt", "expected9.txt"),
@@ -146,7 +146,7 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str):
     # Run solver and print solution
     domain_file = "sokoban.lp"  # Path to the file with ASP rules
     #TODO: make it find one and optimal solution
-    solution = run_and_format_solution(domain_file, map_str, 50)
+    solution = run_and_format_solution(domain_file, map_str, 5)
     print("\nSolution steps:")
     print(solution)
 

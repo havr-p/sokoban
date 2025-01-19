@@ -1,0 +1,40 @@
+Case studies Optimization
+Optimization
+’’’
+Example to show branch and bound based optimization using multi - shot solving .
+’’’
+import sys
+from typing import Optional, Iterable, cast
+from clingo import Model, Control, SolveResult, SymbolType, Application, Number, clingo main
+class OptApp ( Application ):
+’’’
+Example application .
+’’’
+program name : str = " opt - example "
+version : str = " 1.0 "
+bound : Optional [ int ]
+def init ( self ):
+self . bound = None
+def on model ( self, model : Model ):
+self . bound = 0
+for atom in model . symbols ( atoms = True ):
+if ( atom . match ( " minimize " , 2) and
+atom . arguments [0]. type is SymbolType . Number ):
+self . bound += atom . arguments [0]. number
+def main ( self, ctl : Control, files : Iterable [ str ]):
+’’’
+Main function implementing branch and bound optimization .
+’’’
+if not files :
+files = [ " -" ]
+for file in files :
+ctl . load ( file )
+ctl . add ( " bound " , [ " b " ] ,
+" : - #sum { V,I : minimize ( V,I ) } >= b . " )
+ctl . ground ([( " base " , [])])
+while cast ( SolveResult, ctl . solve ( on model = self . on model )). satisfiable :
+print ( " Found new bound : {} " . format ( self . bound ))
+ctl . ground ([( " bound " , [ Number ( cast ( int, self . bound ))])])
+if self . bound is not None :
+print ( " Optimum found " )
+clingo main ( OptApp () , sys . argv [1:])

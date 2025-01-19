@@ -1,229 +1,220 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 1) #program base.  -- БАЗОВАЯ ЧАСТЬ (факты, нач. состояние)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 1) БАЗОВАЯ ПРОГРАММА
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #program base.
 
-% -- Доменные факты. Примерно так (у вас может быть своя карта):
-%    player(p1).      % игрок
-%    stone(s1; s2).   % камни
-%    isgoal(cell5).   % клетки, где цель
-%    isnongoal(cell1; cell2; cell3; ...)   % обычные клетки
-%    movedir(cell1,cell2,right). etc.
-%    ... 
-% Вместо этого блока вставьте свои определения из PDDL / PLASP и т.п.
+% Определение Sokoban и ящиков
+sokoban(sokoban).
+crate(crate_01).
+location(l1;l2;l3;l4;l5;l6;l7;l8;l9;l10;l11;l12;l13;l14;l15;l16;l17;l18;l19;l20;l21;l22;l23;l24;l25;l26;l27).
+isgoal(l17).
+isnongoal(l11;l12;l13;l14;l15;l16).
+wall(l1;l2;l3;l4;l5;l6;l7;l8;l9;l10;l18;l19;l20;l21;l22;l23;l24;l25;l26;l27).
+leftOf(l1, l2).
+below(l10, l1).
+leftOf(l2, l3).
+below(l11, l2).
+leftOf(l3, l4).
+below(l12, l3).
+leftOf(l4, l5).
+below(l13, l4).
+leftOf(l5, l6).
+below(l14, l5).
+leftOf(l6, l7).
+below(l15, l6).
+leftOf(l7, l8).
+below(l16, l7).
+leftOf(l8, l9).
+below(l17, l8).
+below(l18, l9).
+leftOf(l10, l11).
+below(l19, l10).
+leftOf(l11, l12).
+below(l20, l11).
+leftOf(l12, l13).
+below(l21, l12).
+leftOf(l13, l14).
+below(l22, l13).
+leftOf(l14, l15).
+below(l23, l14).
+leftOf(l15, l16).
+below(l24, l15).
+leftOf(l16, l17).
+below(l25, l16).
+leftOf(l17, l18).
+below(l26, l17).
+below(l27, l18).
+leftOf(l19, l20).
+leftOf(l20, l21).
+leftOf(l21, l22).
+leftOf(l22, l23).
+leftOf(l23, l24).
+leftOf(l24, l25).
+leftOf(l25, l26).
+leftOf(l26, l27).
+at(sokoban, l11, 0).
+at(crate_01, l14, 0).
+clear(l12, 0).
+clear(l13, 0).
+clear(l15, 0).
+clear(l16, 0).
+clear(l17, 0).
 
-% -- Инициальные факты (то, что в исходном коде задавалось через at(...,0), clear(...,0), atgoal(...,0))
-%    Допустим, вы писали так:
-%       at(P,To,0) :- at(P,To).
-%       clear(P,0) :- clear(P).
-%       atgoal(S,0) :- isgoal(S), stone(S), at(S,To).
-%    В инкрементальном режиме удобнее сначала завести init(...):
-
-init(at(P,Pos)) :- at(P,Pos).      
-init(clear(Pos)) :- clear(Pos).
-init(atgoal(S)) :- stone(S), isgoal(Pos), at(S,Pos).
-
-% -- Правило, которое говорит: "Если что-то инициализировано, то при t=0 оно holds(...)":
-holds(F,0) :- init(F).
-
-% -- Также можно определить goal/1 (какой именно goal проверяем):
-%    (Иногда goal(...) хранят здесь, иногда — в check(t).)
-goal( atgoal(S) ) :- stone(S).
-
-% Если у вас цель: "все камни должны быть на клетках-целях",
-% можно оставить goal(atgoal(S)) и далее проверить, что все нужные S удовлетворяют.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 2) #program step(t). -- ЛОГИКА ОДНОГО ШАГА
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 2) ПРОГРАММА ШАГА
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #program step(t).
 
-%---------------------
-% GENERATE
-%---------------------
-% Ваше кардинальное ограничение:
-% 1 <= { 
-%   pushtonongoal( P,S,Ppos,From,To,Dir,t ) : ... ;
-%   move( P,From,To,Dir,t ) : ... ;
-%   pushtogoal( P,S,Ppos,From,To,Dir,t ) : ... ;
-%   noop(t)
-% } <= 1 :- step(t).
+% Генерация возможных ходов
+{ do(M,t) : move(M) } 1 :- time(t), t < maxsteps.
 
-1 <= { 
-  pushtonongoal(P,S,Ppos,From,To,Dir,t) : 
-    movedir(Ppos,From,Dir),
-    movedir(From,To,Dir),
-    isnongoal(To),
-    player(P),
-    stone(S),
-    Ppos != To,
-    Ppos != From,
-    From != To;
+% Предусловия для moveLeft
+:- do(moveLeft(S,X,Y), t), not holds(at(S,X), t-1).
+:- do(moveLeft(S,X,Y), t), not holds(clear(Y), t-1).
 
-  move(P,From,To,Dir,t) :
-    movedir(From,To,Dir),
-    player(P),
-    From != To;
+% Предусловия для moveRight
+:- do(moveRight(S,X,Y), t), not holds(at(S,X), t-1).
+:- do(moveRight(S,X,Y), t), not holds(clear(Y), t-1).
 
-  pushtogoal(P,S,Ppos,From,To,Dir,t) :
-    movedir(Ppos,From,Dir),
-    movedir(From,To,Dir),
-    isgoal(To),
-    player(P),
-    stone(S),
-    Ppos != To,
-    Ppos != From,
-    From != To;
+% Предусловия для moveUp
+:- do(moveUp(S,X,Y), t), not holds(at(S,X), t-1).
+:- do(moveUp(S,X,Y), t), not holds(clear(Y), t-1).
 
-  noop(t)
-} <= 1 :- step(t).
+% Предусловия для moveDown
+:- do(moveDown(S,X,Y), t), not holds(at(S,X), t-1).
+:- do(moveDown(S,X,Y), t), not holds(clear(Y), t-1).
 
-%---------------------
-% TEST (предусловия и прочие constraints)
-%---------------------
+% Предусловия для pushLeft
+:- do(pushLeft(S,X,Y,Z,C), t), not holds(at(S,X), t-1).
+:- do(pushLeft(S,X,Y,Z,C), t), not holds(at(C,Y), t-1).
+:- do(pushLeft(S,X,Y,Z,C), t), not holds(clear(Z), t-1).
 
-% --- push-to-nongoal ---
-:- pushtonongoal(P,S,Ppos,From,To,Dir,t),
-   not preconditions_png(P,S,Ppos,From,To,Dir,t),
-   movedir(Ppos,From,Dir),
-   movedir(From,To,Dir),
-   isnongoal(To),
-   player(P),
-   stone(S),
-   Ppos != To, Ppos != From, From != To.
+% Предусловия для pushRight
+:- do(pushRight(S,X,Y,Z,C), t), not holds(at(S,X), t-1).
+:- do(pushRight(S,X,Y,Z,C), t), not holds(at(C,Y), t-1).
+:- do(pushRight(S,X,Y,Z,C), t), not holds(clear(Z), t-1).
 
-preconditions_png(P,S,Ppos,From,To,Dir,t) :-
-   at(P,Ppos,t-1),
-   at(S,From,t-1),
-   clear(To,t-1),
-   movedir(Ppos,From,Dir),
-   movedir(From,To,Dir),
-   isnongoal(To),
-   player(P),
-   stone(S),
-   Ppos != To, Ppos != From, From != To,
-   step(t).
+% Предусловия для pushUp
+:- do(pushUp(S,X,Y,Z,C), t), not holds(at(S,X), t-1).
+:- do(pushUp(S,X,Y,Z,C), t), not holds(at(C,Y), t-1).
+:- do(pushUp(S,X,Y,Z,C), t), not holds(clear(Z), t-1).
 
-% --- move ---
-:- move(P,From,To,Dir,t),
-   not preconditions_m(P,From,To,Dir,t),
-   movedir(From,To,Dir),
-   player(P),
-   From != To.
+% Предусловия для pushDown
+:- do(pushDown(S,X,Y,Z,C), t), not holds(at(S,X), t-1).
+:- do(pushDown(S,X,Y,Z,C), t), not holds(at(C,Y), t-1).
+:- do(pushDown(S,X,Y,Z,C), t), not holds(clear(Z), t-1).
 
-preconditions_m(P,From,To,Dir,t) :-
-   at(P,From,t-1),
-   clear(To,t-1),
-   movedir(From,To,Dir),
-   player(P),
-   From != To,
-   step(t).
+% Эффекты для moveLeft
+holds(at(sokoban, Y), t) :- do(moveLeft(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
+-holds(at(sokoban, X), t) :- do(moveLeft(sokoban,X,Y), t), holds(at(sokoban,X), t-1).
+holds(clear(X), t) :- do(moveLeft(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
+-holds(clear(Y), t) :- do(moveLeft(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
 
-% --- push-to-goal ---
-:- pushtogoal(P,S,Ppos,From,To,Dir,t),
-   not preconditions_pg(P,S,Ppos,From,To,Dir,t),
-   movedir(Ppos,From,Dir),
-   movedir(From,To,Dir),
-   isgoal(To),
-   player(P),
-   stone(S),
-   Ppos != To, Ppos != From, From != To,
-   step(t).
+% Эффекты для moveRight
+holds(at(sokoban, Y), t) :- do(moveRight(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
+-holds(at(sokoban, X), t) :- do(moveRight(sokoban,X,Y), t), holds(at(sokoban,X), t-1).
+holds(clear(X), t) :- do(moveRight(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
+-holds(clear(Y), t) :- do(moveRight(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
 
-preconditions_pg(P,S,Ppos,From,To,Dir,t) :-
-   at(P,Ppos,t-1),
-   at(S,From,t-1),
-   clear(To,t-1),
-   movedir(Ppos,From,Dir),
-   movedir(From,To,Dir),
-   isgoal(To),
-   player(P),
-   stone(S),
-   Ppos != To, Ppos != From, From != To,
-   step(t).
+% Эффекты для moveUp
+holds(at(sokoban, Y), t) :- do(moveUp(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
+-holds(at(sokoban, X), t) :- do(moveUp(sokoban,X,Y), t), holds(at(sokoban,X), t-1).
+holds(clear(X), t) :- do(moveUp(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
+-holds(clear(Y), t) :- do(moveUp(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
 
-%---------------------
-% DEFINE (EFFECTS)
-%---------------------
+% Эффекты для moveDown
+holds(at(sokoban, Y), t) :- do(moveDown(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
+-holds(at(sokoban, X), t) :- do(moveDown(sokoban,X,Y), t), holds(at(sokoban,X), t-1).
+holds(clear(X), t) :- do(moveDown(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
+-holds(clear(Y), t) :- do(moveDown(sokoban,X,Y), t), holds(at(sokoban,X), t-1), holds(clear(Y), t-1).
 
-% Примерно в таком же стиле переносим ваши del(...)/at(...).
-% push-to-nongoal
-del(at(P,Ppos),t) :- 
-   pushtonongoal(P,S,Ppos,From,To,Dir,t),
-   movedir(Ppos,From,Dir),
-   movedir(From,To,Dir),
-   isnongoal(To),
-   player(P),
-   stone(S),
-   Ppos != To, Ppos != From, From != To.
+% Эффекты для pushLeft
+holds(at(sokoban, Y), t) :- do(pushLeft(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(at(sokoban, X), t) :- do(pushLeft(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1).
+holds(at(crate_01, Z), t) :- do(pushLeft(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(at(crate_01, Y), t) :- do(pushLeft(sokoban,X,Y,Z,crate_01), t), holds(at(crate_01,Y), t-1).
+holds(clear(X), t) :- do(pushLeft(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(clear(Z), t) :- do(pushLeft(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(clear(Y), t) :- do(pushLeft(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
 
-del(at(S,From),t) :-
-   pushtonongoal(P,S,Ppos,From,To,Dir,t),
-   movedir(Ppos,From,Dir),
-   movedir(From,To,Dir),
-   isnongoal(To),
-   player(P),
-   stone(S),
-   Ppos != To, Ppos != From, From != To.
+% Эффекты для pushRight
+holds(at(sokoban, Y), t) :- do(pushRight(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(at(sokoban, X), t) :- do(pushRight(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1).
+holds(at(crate_01, Z), t) :- do(pushRight(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(at(crate_01, Y), t) :- do(pushRight(sokoban,X,Y,Z,crate_01), t), holds(at(crate_01,Y), t-1).
+holds(clear(X), t) :- do(pushRight(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(clear(Z), t) :- do(pushRight(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(clear(Y), t) :- do(pushRight(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
 
-del(clear(To),t) :-
-   pushtonongoal(P,S,Ppos,From,To,Dir,t),
-   ... etc.
+% Эффекты для pushUp
+holds(at(sokoban, Y), t) :- do(pushUp(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(at(sokoban, X), t) :- do(pushUp(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1).
+holds(at(crate_01, Z), t) :- do(pushUp(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(at(crate_01, Y), t) :- do(pushUp(sokoban,X,Y,Z,crate_01), t), holds(at(crate_01,Y), t-1).
+holds(clear(X), t) :- do(pushUp(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(clear(Z), t) :- do(pushUp(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(clear(Y), t) :- do(pushUp(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
 
-at(P,From,t) :-
-   pushtonongoal(P,S,Ppos,From,To,Dir,t), 
-   ... etc.
+% Эффекты для pushDown
+holds(at(sokoban, Y), t) :- do(pushDown(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(at(sokoban, X), t) :- do(pushDown(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1).
+holds(at(crate_01, Z), t) :- do(pushDown(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(at(crate_01, Y), t) :- do(pushDown(sokoban,X,Y,Z,crate_01), t), holds(at(crate_01,Y), t-1).
+holds(clear(X), t) :- do(pushDown(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(clear(Z), t) :- do(pushDown(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
+-holds(clear(Y), t) :- do(pushDown(sokoban,X,Y,Z,crate_01), t), holds(at(sokoban,X), t-1), holds(at(crate_01,Y), t-1), holds(clear(Z), t-1).
 
-at(S,To,t) :-
-   pushtonongoal(...).
+% Deadlock definitions
+adjacentWallLeftOrRight(L) :- wall(L1), leftOf(L, L1).
+adjacentWallLeftOrRight(L) :- wall(L1), leftOf(L1, L).
 
-clear(Ppos,t) :-
-   pushtonongoal(...).
+adjacentWallAboveOrBelow(L) :- wall(L2), below(L, L2).
+adjacentWallAboveOrBelow(L) :- wall(L2), below(L2, L).
 
-del(atgoal(S),t) :-
-   pushtonongoal(...).
+deadlock(L) :-
+    location(L),
+    adjacentWallLeftOrRight(L),
+    adjacentWallAboveOrBelow(L),
+    not isgoal(L).
 
-% move
-del(at(P,From),t) :- move(P,From,To,Dir,t), ...
-del(clear(To),t)   :- move(P,From,To,Dir,t), ...
-at(P,To,t)         :- move(P,From,To,Dir,t), ...
-clear(From,t)      :- move(P,From,To,Dir,t), ...
+% Запрет на перемещение ящика в тупиковую клетку
+:- do(pushLeft(S,X,Y,Z,C), T), deadlock(Z).
+:- do(pushRight(S,X,Y,Z,C), T), deadlock(Z).
+:- do(pushUp(S,X,Y,Z,C), T), deadlock(Z).
+:- do(pushDown(S,X,Y,Z,C), T), deadlock(Z).
 
-% push-to-goal
-del(at(P,Ppos),t) :- pushtogoal(...).
-del(at(S,From),t) :- pushtogoal(...).
-del(clear(To),t)  :- pushtogoal(...).
-at(P,From,t)       :- pushtogoal(...).
-at(S,To,t)         :- pushtogoal(...).
-clear(Ppos,t)      :- pushtogoal(...).
-atgoal(S,t)        :- pushtogoal(...).
+% Запрет на перемещение ящика в стену
+:- do(pushLeft(S,X,Y,Z,C), T), wall(Z).
+:- do(pushRight(S,X,Y,Z,C), T), wall(Z).
+:- do(pushUp(S,X,Y,Z,C), T), wall(Z).
+:- do(pushDown(S,X,Y,Z,C), T), wall(Z).
 
-%---------------------
-% INERTIA: если что-то не удалено, оно остаётся
-%---------------------
-clear(L,t)   :- clear(L,t-1),   not del(clear(L,t)),   step(t).
-atgoal(S,t)  :- atgoal(S,t-1),  not del(atgoal(S,t)),  stone(S), step(t).
-at(X,L,t)    :- at(X,L,t-1),    not del(at(X,L,t)),    step(t).
+% Запрет на перемещение Sokoban в стену
+:- do(moveLeft(S,X,Y), T), wall(Y).
+:- do(moveRight(S,X,Y), T), wall(Y).
+:- do(moveUp(S,X,Y), T), wall(Y).
+:- do(moveDown(S,X,Y), T), wall(Y).
 
-% (Можно добавить ещё inertia для других предикатов, если нужно.)
+% Инерция: объекты остаются на местах, если не изменились
+holds(F,t) :- holds(F,t-1), not -holds(F,t).
+-holds(F,t) :- holds(F,t-1), not holds(F,t).
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 3) #program check(t). -- ПРОВЕРКА ДОСТИЖЕНИЯ ЦЕЛИ
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 3) ПРОГРАММА ПРОВЕРКИ
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #program check(t).
+#external query(t).
 
-% Пример: считаем, что "goalreached" -- если все goal(F) выполняются
-goalreached :- 
-  step(t),
-  N = #count{ G : goal(G) },
-  M = #count{ G : goal(G), holdsgoal(G,t) },  % либо atgoal(S,t), смотря как вы проверяете
-  N == M.
+% Проверка, что все ящики достигли целей
+reached_goal(C,t) :- holds(at(C,L),t), isgoal(L), crate(C).
 
-% Либо, как в вашем исходном коде:
-% goalreached :- step(t), N = #count{ X,T : atgoal(X,t), goal(X) }, N = #count{ X : goal(X) }.
+% Требуем, чтобы все ящики достигли целей
+:- query(t), crate(C), not reached_goal(C,t).
 
-:- not goalreached.
+% Запрет на оставание Sokoban на месте, если цели еще не достигнуты
+:- query(t), holds(at(sokoban,L),t), holds(at(sokoban,L),t-1), not goal_achieved(t-1).
 
-% Или, если нужна конкретная проверка: 
-% :- query(t), goal(F), not holds(F,t).
-% #show move/5, pushtonongoal/7, ...
+% Определение момента достижения цели
+goal_achieved(t) :- reached_goal(C,t), crate(C).
+
+#show do/2.

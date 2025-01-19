@@ -1,5 +1,8 @@
-#include <incmode>.
-#program base.
+import clingo
+
+def solve():
+    asp_code_base = """
+ #program base.
 
 % Define Sokoban puzzle elements
 sokoban(sokoban).
@@ -26,120 +29,105 @@ init(at(crate_01, l14)).
 
 % Holds at time 0
 holds(F,0) :- init(F).
+    """
 
-#program step(t).
-
-% Generate actions
+    asp_code_step = """
+       % Generate actions
 { do(Action, t) : action(Action, t) } = 1.
 
 % Action definitions
 % MoveLeft
 action(moveLeft(S,X,Y), t) :-
     sokoban(S),
+    holds(at(S,X), t-1),
     leftOf(Y,X),
+    holds(clear(Y), t-1),
     not wall(Y).
 
 % MoveRight
 action(moveRight(S,X,Y), t) :-
     sokoban(S),
+    holds(at(S,X), t-1),
     leftOf(X,Y),
+    holds(clear(Y), t-1),
     not wall(Y).
 
 % MoveUp
 action(moveUp(S,X,Y), t) :-
     sokoban(S),
+    holds(at(S,X), t-1),
     below(X,Y),
+    holds(clear(Y), t-1),
     not wall(Y).
 
 % MoveDown
 action(moveDown(S,X,Y), t) :-
     sokoban(S),
+    holds(at(S,X), t-1),
     below(Y,X),
+    holds(clear(Y), t-1),
     not wall(Y).
 
 % PushLeft
 action(pushLeft(S,X,Y,Z,C), t) :-
     sokoban(S),
     crate(C),
+    holds(at(S,X), t-1),
+    holds(at(C,Y), t-1),
     leftOf(Y,X),
     leftOf(Z,Y),
+    holds(clear(Z), t-1),
     not wall(Z).
 
 % PushRight
 action(pushRight(S,X,Y,Z,C), t) :-
     sokoban(S),
     crate(C),
+    holds(at(S,X), t-1),
+    holds(at(C,Y), t-1),
     leftOf(X,Y),
     leftOf(Y,Z),
+    holds(clear(Z), t-1),
     not wall(Z).
 
 % PushUp
 action(pushUp(S,X,Y,Z,C), t) :-
     sokoban(S),
     crate(C),
+    holds(at(S,X), t-1),
+    holds(at(C,Y), t-1),
     below(X,Y),
     below(Y,Z),
+    holds(clear(Z), t-1),
     not wall(Z).
 
 % PushDown
 action(pushDown(S,X,Y,Z,C), t) :-
     sokoban(S),
     crate(C),
+    holds(at(S,X), t-1),
+    holds(at(C,Y), t-1),
     below(Y,X),
     below(Z,Y),
+    holds(clear(Z), t-1),
     not wall(Z).
-
-% Preconditions
-% moveLeft
-:- do(moveLeft(S,X,Y), t), not holds(at(S,X), t-1).
-:- do(moveLeft(S,X,Y), t), not holds(clear(Y), t-1).
-% moveRight
-:- do(moveRight(S,X,Y), t), not holds(at(S,X), t-1).
-:- do(moveRight(S,X,Y), t), not holds(clear(Y), t-1).
-% moveUp
-:- do(moveUp(S,X,Y), t), not holds(at(S,X), t-1).
-:- do(moveUp(S,X,Y), t), not holds(clear(Y), t-1).
-% moveDown
-:- do(moveDown(S,X,Y), t), not holds(at(S,X), t-1).
-:- do(moveDown(S,X,Y), t), not holds(clear(Y), t-1).
-% pushLeft
-:- do(pushLeft(S,X,Y,Z,C), t), not holds(at(S,X), t-1).
-:- do(pushLeft(S,X,Y,Z,C), t), not holds(at(C,Y), t-1).
-:- do(pushLeft(S,X,Y,Z,C), t), not holds(clear(Z), t-1).
-% pushRight
-:- do(pushRight(S,X,Y,Z,C), t), not holds(at(S,X), t-1).
-:- do(pushRight(S,X,Y,Z,C), t), not holds(at(C,Y), t-1).
-:- do(pushRight(S,X,Y,Z,C), t), not holds(clear(Z), t-1).
-% pushUp
-:- do(pushUp(S,X,Y,Z,C), t), not holds(at(S,X), t-1).
-:- do(pushUp(S,X,Y,Z,C), t), not holds(at(C,Y), t-1).
-:- do(pushUp(S,X,Y,Z,C), t), not holds(clear(Z), t-1).
-% pushDown
-:- do(pushDown(S,X,Y,Z,C), t), not holds(at(S,X), t-1).
-:- do(pushDown(S,X,Y,Z,C), t), not holds(at(C,Y), t-1).
-:- do(pushDown(S,X,Y,Z,C), t), not holds(clear(Z), t-1).
 
 % Moved predicates
 % For Sokoban
-moved(S, t) :- do(Action, t), sokoban(S), action_involves_sokoban(Action).
+moved(S, t) :- do(moveLeft(S,X,Y), t), sokoban(S).
+moved(S, t) :- do(moveRight(S,X,Y), t), sokoban(S).
+moved(S, t) :- do(moveUp(S,X,Y), t), sokoban(S).
+moved(S, t) :- do(moveDown(S,X,Y), t), sokoban(S).
+moved(S, t) :- do(pushLeft(S,X,Y,Z,C), t), sokoban(S).
+moved(S, t) :- do(pushRight(S,X,Y,Z,C), t), sokoban(S).
+moved(S, t) :- do(pushUp(S,X,Y,Z,C), t), sokoban(S).
+moved(S, t) :- do(pushDown(S,X,Y,Z,C), t), sokoban(S).
+
 % For Crate
-moved(C, t) :- do(Action, t), crate(C), action_involves_crate(Action, C).
-
-% Define action_involves_sokoban
-action_involves_sokoban(moveLeft(S,X,Y)).
-action_involves_sokoban(moveRight(S,X,Y)).
-action_involves_sokoban(moveUp(S,X,Y)).
-action_involves_sokoban(moveDown(S,X,Y)).
-action_involves_sokoban(pushLeft(S,X,Y,Z,C)).
-action_involves_sokoban(pushRight(S,X,Y,Z,C)).
-action_involves_sokoban(pushUp(S,X,Y,Z,C)).
-action_involves_sokoban(pushDown(S,X,Y,Z,C)).
-
-% Define action_involves_crate
-action_involves_crate(pushLeft(S,X,Y,Z,C), C).
-action_involves_crate(pushRight(S,X,Y,Z,C), C).
-action_involves_crate(pushUp(S,X,Y,Z,C), C).
-action_involves_crate(pushDown(S,X,Y,Z,C), C).
+moved(C, t) :- do(pushLeft(S,X,Y,Z,C), t), crate(C).
+moved(C, t) :- do(pushRight(S,X,Y,Z,C), t), crate(C).
+moved(C, t) :- do(pushUp(S,X,Y,Z,C), t), crate(C).
+moved(C, t) :- do(pushDown(S,X,Y,Z,C), t), crate(C).
 
 % Update holds predicates
 % For Sokoban
@@ -174,8 +162,48 @@ holds(clear(L), t) :- location(L), not occupied(L,t), not wall(L).
 % Goal
 goal(at(crate_01, l17)).
 
-#program check(t).
-#external query(t).
+    """
 
-% Test
-:- query(t), goal(F), not holds(F, t).
+    asp_code_check = """
+        #program check(t).
+        #external query(t).
+        % Test
+        :- query(t), goal(F), not holds(F,t).
+        #show do/2.
+    """
+
+    def on_model(model):
+        print("Found solution:", model)
+
+    max_step = 10  # увеличил максимальное количество шагов, так как эта задача может требовать больше ходов
+    control = clingo.Control()
+    control.configuration.solve.models = 1
+
+    # add each #program
+    control.add("base", [], asp_code_base)
+    control.add("step", ["t"], asp_code_step)
+    control.add("check", ["t"], asp_code_check)
+
+    parts = []
+    parts.append(("base", []))
+    control.ground(parts)
+    ret, step = None, 1
+
+    while step <= max_step and (step == 1 or not ret.satisfiable):
+        parts = []
+        control.release_external(clingo.Function("query", [clingo.Number(step - 1)]))
+        parts.append(("step", [clingo.Number(step)]))
+        parts.append(("check", [clingo.Number(step)]))
+        control.cleanup()
+        control.ground(parts)
+        control.assign_external(clingo.Function("query", [clingo.Number(step)]), True)
+        print(f"Solving step: t={step}")
+        ret = control.solve(on_model=on_model)
+        print(f"Returned: {ret}")
+        step += 1
+
+if __name__ == "__main__":
+    try:
+        solve()
+    except Exception as e:
+        print(f"An error occurred: {e}")
