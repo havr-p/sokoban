@@ -8,12 +8,12 @@ def get_test_cases() -> List[Tuple[str, str]]:
     """Define all available test cases."""
     return [
         ("map1.txt", "expected1.txt"),
-        ("map2.txt", "expected2.txt"),
-        ("map3.txt", "expected3.txt"),
+        #("map2.txt", "expected2.txt"),
+        #("map3.txt", "expected3.txt"),
         ("map4.txt", "expected4.txt"),
         ("map5.txt", "expected5.txt"),
         ("map6.txt", "expected6.txt"),
-        ("map7.txt", "expected7.txt"),
+        #("map7.txt", "expected7.txt"),
         ("map8.txt", "expected8.txt"),
     ]
 

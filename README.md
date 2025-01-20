@@ -204,4 +204,5 @@ pytest test_solver.py --map=map1.txt --tb=short -v -s
 
 **Options:**
 
-- `--map=<map_file>`: Run tests for a specific map. If omitted, all maps are tested.
+- `--map=<map_file>`: Run tests for a specific map. If omitted, all maps are tested.  
+Note: On basic maps like map #1, #8, #4-#6 my encoding works without problems and finds optimal plan in a fraction of second. But unfortunately maps #2, #3 and #7 run too long for convenient. But in some time my encoding still can find suboptimal solution for that maps.
