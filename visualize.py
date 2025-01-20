@@ -164,7 +164,7 @@ class SokobanVisualizer:
         # Display Generated ASP Map
         generated_map_path = os.path.join(self.MAPS_OUT_DIR, f"generated_{selected_map}")
         try:
-            SokobanMap.write_map_file(generated_map_path, self.maps[-1])  # Now works correctly
+            #SokobanMap.write_map_file(generated_map_path, self.maps[-1])  # Now works correctly
             self.display_generated_asp_map(generated_map_path)
         except Exception as e:
             messagebox.showerror("ASP Map Write Error", f"An error occurred while writing the generated ASP map:\n{e}")

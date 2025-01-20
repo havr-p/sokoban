@@ -104,10 +104,12 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str) :
     actual_output = solver.generate_facts_from_map(map_str) 
 
     os.makedirs(MAPS_OUT_DIR, exist_ok=True)
-    actual_output_path = os.path.join(MAPS_OUT_DIR, f"generated_{map_file}")
 
-    with open(actual_output_path, 'w', encoding='utf-8') as file:
-         file.write(actual_output)
+    generated_map_path = os.path.join(MAPS_OUT_DIR, f"generated_{map_file}")
+    try:
+        SokobanMap.write_map_file(generated_map_path, actual_output)
+    except Exception as e:
+        pytest.fail(f"Failed to write generated map file: {e}")
 
     # def filter_facts(output: str) -> Set[str]:
     #     """Filters out lines starting with 'step(' and '#const maxsteps'."""

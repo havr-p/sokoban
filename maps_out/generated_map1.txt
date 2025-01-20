@@ -1,5 +1,70 @@
-######
-#cS  #
-#   c#
-#c   #
-######
+sokoban(sokoban).
+crate(crate_01).
+crate(crate_02).
+crate(crate_03).
+location(l0_0;l0_1;l0_2;l0_3;l0_4;l0_5;l1_0;l1_1;l1_2;l1_3;l1_4;l1_5;l2_0;l2_1;l2_2;l2_3;l2_4;l2_5;l3_0;l3_1;l3_2;l3_3;l3_4;l3_5;l4_0;l4_1;l4_2;l4_3;l4_4;l4_5).
+isgoal(l1_1;l2_4;l3_1).
+isnongoal(l1_2;l1_3;l1_4;l2_1;l2_2;l2_3;l3_2;l3_3;l3_4).
+wall(l0_0;l0_1;l0_2;l0_3;l0_4;l0_5;l1_0;l1_5;l2_0;l2_5;l3_0;l3_5;l4_0;l4_1;l4_2;l4_3;l4_4;l4_5).
+leftOf(l0_0, l0_1).
+below(l1_0, l0_0).
+leftOf(l0_1, l0_2).
+below(l1_1, l0_1).
+leftOf(l0_2, l0_3).
+below(l1_2, l0_2).
+leftOf(l0_3, l0_4).
+below(l1_3, l0_3).
+leftOf(l0_4, l0_5).
+below(l1_4, l0_4).
+below(l1_5, l0_5).
+leftOf(l1_0, l1_1).
+below(l2_0, l1_0).
+leftOf(l1_1, l1_2).
+below(l2_1, l1_1).
+leftOf(l1_2, l1_3).
+below(l2_2, l1_2).
+leftOf(l1_3, l1_4).
+below(l2_3, l1_3).
+leftOf(l1_4, l1_5).
+below(l2_4, l1_4).
+below(l2_5, l1_5).
+leftOf(l2_0, l2_1).
+below(l3_0, l2_0).
+leftOf(l2_1, l2_2).
+below(l3_1, l2_1).
+leftOf(l2_2, l2_3).
+below(l3_2, l2_2).
+leftOf(l2_3, l2_4).
+below(l3_3, l2_3).
+leftOf(l2_4, l2_5).
+below(l3_4, l2_4).
+below(l3_5, l2_5).
+leftOf(l3_0, l3_1).
+below(l4_0, l3_0).
+leftOf(l3_1, l3_2).
+below(l4_1, l3_1).
+leftOf(l3_2, l3_3).
+below(l4_2, l3_2).
+leftOf(l3_3, l3_4).
+below(l4_3, l3_3).
+leftOf(l3_4, l3_5).
+below(l4_4, l3_4).
+below(l4_5, l3_5).
+leftOf(l4_0, l4_1).
+leftOf(l4_1, l4_2).
+leftOf(l4_2, l4_3).
+leftOf(l4_3, l4_4).
+leftOf(l4_4, l4_5).
+at(sokoban, l1_1, 0).
+at(crate_01, l2_3, 0).
+at(crate_02, l2_1, 0).
+at(crate_03, l2_2, 0).
+clear(l1_2, 0).
+clear(l1_3, 0).
+clear(l1_4, 0).
+clear(l2_4, 0).
+clear(l3_1, 0).
+clear(l3_2, 0).
+clear(l3_3, 0).
+clear(l3_4, 0).
+time(0..maxsteps).
