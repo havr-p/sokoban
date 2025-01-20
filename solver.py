@@ -1,346 +1,521 @@
+# solver.py
+
 import clingo
 import argparse
-
-def generate_sokoban_lp_from_map(map_str: str, max_steps: int = 10) -> str:
-    lines = [ln.strip() for ln in map_str.splitlines() if ln.strip() != ""]
-    height = len(lines)
-    width = max(len(row) for row in lines) if lines else 0
-
-    sokoban_pos = None
-    crate_positions = set()
-    walls = set()
-    goal_positions = set()
-
-    for r, row in enumerate(lines):
-        for c, ch in enumerate(row):
-            if ch == '#':
-                walls.add((r, c))
-            elif ch in ('S', 's'):
-                sokoban_pos = (r, c)
-                if ch == 's' and (r, c) not in walls:
-                    goal_positions.add((r, c))
-            elif ch in ('C', 'c'):
-                crate_positions.add((r, c))
-                if ch == 'c' and (r, c) not in walls:
-                    goal_positions.add((r, c))
-            elif ch == 'X' and (r, c) not in walls:
-                goal_positions.add((r, c))
-
-    def cell_index(rr, cc):
-        return rr * width + cc + 1
-
-    facts = ["sokoban(sokoban)."]
-    for i, pos in enumerate(crate_positions, start=1):
-        facts.append(f"crate(crate_{i:02d}).")
-
-    location_list, goal_list, nongoal_list, walls_list = [], [], [], []
-    for r in range(height):
-        row_len = len(lines[r])
-        for c in range(row_len):
-            N = cell_index(r, c)
-            loc_name = f"l{N}"
-            location_list.append(loc_name)
-            if (r, c) in goal_positions:
-                goal_list.append(loc_name)
-            elif (r, c) not in walls:
-                nongoal_list.append(loc_name)
-            elif (r,c) in walls:
-                walls_list.append(loc_name)
-    assert not (set(goal_list) & set(nongoal_list)), "Conflict: Cells in both isgoal and isnongoal"
-    if location_list:
-        facts.append(f"location({';'.join(location_list)}).")
-    if goal_list:
-        facts.append(f"isgoal({';'.join(goal_list)}).")
-    if nongoal_list:
-        facts.append(f"isnongoal({';'.join(nongoal_list)}).")
-    if walls_list:
-        facts.append(f"wall({';'.join(walls_list)}).")
-
-    for r in range(height):
-        row_len = len(lines[r])
-        for c in range(row_len):
-            thisN = cell_index(r, c)
-            if c + 1 < row_len:
-                rightN = cell_index(r, c + 1)
-                facts.append(f"leftOf(l{thisN}, l{rightN}).")
-            if r + 1 < height and c < len(lines[r + 1]):
-                downN = cell_index(r + 1, c)
-                facts.append(f"below(l{downN}, l{thisN}).")
-
-    if sokoban_pos is not None:
-        sN = cell_index(*sokoban_pos)
-        facts.append(f"at(sokoban, l{sN}, 0).")
-
-    for i, (r, c) in enumerate(crate_positions, start=1):
-        crate_name = f"crate_{i:02d}"
-        N = cell_index(r, c)
-        facts.append(f"at({crate_name}, l{N}, 0).")
-
-    occupied = walls | crate_positions | ({sokoban_pos} if sokoban_pos else set())
-    for r in range(height):
-        row_len = len(lines[r])
-        for c in range(row_len):
-            if (r, c) not in occupied:
-                cellN = cell_index(r, c)
-                facts.append(f"clear(l{cellN}, 0).")
-
-    facts.append(f"#const maxsteps={max_steps}.")
-    facts.append("time(0..maxsteps).")
-
-    return "\n".join(facts)
+import math
+from typing import List, Tuple, Set, Optional, Dict
 
 
-
-
-
-
-def run_and_format_solution(domain_asp_file: str, map_str: str, max_steps: int = 20) -> str:
+class SokobanSolver:
     """
-    Запускает решатель Clingo, подмешивая:
-      1) правила из файла domain_asp_file (где описаны push/move, эффекты и т.д.)
-      2) факты, сгенерированные из карты (generate_sokoban_lp_from_map)
-    Возвращает строку с упорядоченными действиями плана или сообщение
-    "No solution found".
+    A solver for Sokoban puzzles using the Clingo ASP solver.
     """
-    def on_model(model):
-        nonlocal solution_found, solution_steps
-        solution_found = True
-        print("Found solution:", model)  # Для отладки выводим сырую модель
 
-        # Вытаскиваем все показываемые литералы (shown=True)
-        atoms = [str(atom) for atom in model.symbols(shown=True)]
+    def __init__(self, domain_asp_file: str, max_steps: int = 10):
+        """
+        Initializes the SokobanSolver.
 
-        # Если в domain_asp_file вывод действий задан, например, как "#show do/2",
-        # То действия выглядят вроде do(moveLeft(sokoban,l37,l30), 0).
-        # Тогда можно так отфильтровать:
-        moves = [a for a in atoms if a.startswith("do(")]
-        solution_steps.extend(moves)
+        Args:
+            domain_asp_file: Path to the ASP domain rules file.
+            max_steps: Maximum number of steps to search for a solution.
+        """
+        self.domain_asp_file = domain_asp_file
+        self.max_steps = max_steps
 
-    # Инициализация
-    solution_found = False
-    solution_steps = []
-    
-    print("Solving Sokoban...\n")
-    
-    try:
-        ctl = clingo.Control()
-        ctl.configuration.solve.models = 0  # 0 = искать все модели, но обычно хватит 1.
-        
-        # 1) Загружаем файл с общими правилами (движения, push, эффекты и т.д.)
-        ctl.load(domain_asp_file)
-        print(f'\n\n\nDOMAIN FILE:\n{domain_asp_file}\n\n')
-        # 2) Генерируем факты из карты
-        instance_lp = generate_sokoban_lp_from_map(map_str, max_steps)
-        print("debug map")
-        print_debug_grid(map_str)
-        print("INSTANCE\n\n\n")
-        print("Instance facts in ASP:\n", instance_lp)
-        print("END OF INSTANCE\n\n\n")
-        
-        # 3) Добавляем факты к "base"-части
-        ctl.add("base", [], instance_lp)
-        
-        # 4) Ground
-        ctl.ground([("base", [])])
-        
-        # 5) Запускаем решатель
-        result = ctl.solve(on_model=on_model)
-        
-        # Если не было ни одной модели
-        if not solution_found:
-            return "No solution found"
-        
-        # Обработка вывода
-        # Предположим, что каждый do(...) оканчивается на шаг T,
-        # формально что-то вроде do(..., T).
-        # Нужно извлечь T и отсортировать.
-        step_to_action = {}
-        for action_literal in solution_steps:
-            # Например: do(moveLeft(sokoban,l37,l30), 0)
-            # Разберём строку, чтобы взять последний аргумент перед `)`
-            # Аккуратно обрежем: do( ..., T)
-            inside = action_literal[len("do("):-1]  # что внутри do(...)
-            # Разделим по запятым, но нужно быть аккуратным, 
-            # т.к. внутри moveLeft(...) тоже запятые.
-            # Проще отсечь всё до последней запятой:
+    @staticmethod
+    def cell_index(row: int, col: int) -> str:
+        """Generates a unique cell identifier based on row and column."""
+        return f"{row}_{col}"
+
+    def generate_facts_from_map(self, map_str: str, max_steps: int) -> str:
+        """
+        Converts the Sokoban map into ASP facts.
+
+        Args:
+            map_str: String representation of the Sokoban map.
+            max_steps: Maximum number of steps for the solver.
+
+        Returns:
+            A string containing ASP facts derived from the map.
+        """
+        lines = [line.strip() for line in map_str.splitlines() if line.strip()]
+        height = len(lines)
+        width = max(len(row) for row in lines) if lines else 0
+
+        sokoban_pos: Optional[Tuple[int, int]] = None
+        crate_positions: Set[Tuple[int, int]] = set()
+        walls: Set[Tuple[int, int]] = set()
+        goal_positions: Set[Tuple[int, int]] = set()
+
+        for r, row in enumerate(lines):
+            for c, ch in enumerate(row):
+                pos = (r, c)
+                if ch == '#':
+                    walls.add(pos)
+                elif ch in ('S', 's'):
+                    sokoban_pos = pos
+                    if ch == 's' and pos not in walls:
+                        goal_positions.add(pos)
+                elif ch in ('C', 'c'):
+                    crate_positions.add(pos)
+                    if ch == 'c' and pos not in walls:
+                        goal_positions.add(pos)
+                elif ch == 'X' and pos not in walls:
+                    goal_positions.add(pos)
+
+        facts = ["sokoban(sokoban)."]
+        for i, _ in enumerate(crate_positions, start=1):
+            facts.append(f"crate(crate_{i:02d}).")
+
+        location_list, goal_list, non_goal_list, walls_list = self._categorize_cells(
+            lines, height, width, goal_positions, walls
+        )
+
+        facts.extend(self._format_facts(location_list, goal_list, non_goal_list, walls_list))
+        facts.extend(self._define_relations(lines, height, width))
+        facts.extend(self._define_initial_positions(sokoban_pos, crate_positions, height, width, lines, walls))
+        facts.append(f"#const maxsteps={max_steps}.")
+        facts.append("time(0..maxsteps).")
+
+        return "\n".join(facts)
+
+    def _categorize_cells(
+        self,
+        lines: List[str],
+        height: int,
+        width: int,
+        goal_positions: Set[Tuple[int, int]],
+        walls: Set[Tuple[int, int]],
+    ) -> Tuple[List[str], List[str], List[str], List[str]]:
+        """Categorizes cells into locations, goals, non-goals, and walls."""
+        location_list, goal_list, non_goal_list, walls_list = [], [], [], []
+        for r in range(height):
+            row_length = len(lines[r])
+            for c in range(row_length):
+                cell_id = f"l{self.cell_index(r, c)}"
+                location_list.append(cell_id)
+                pos = (r, c)
+                if pos in goal_positions:
+                    goal_list.append(cell_id)
+                elif pos not in walls:
+                    non_goal_list.append(cell_id)
+                if pos in walls:
+                    walls_list.append(cell_id)
+        assert not set(goal_list) & set(non_goal_list), "Conflict: Cells in both isgoal and isnongoal"
+        return location_list, goal_list, non_goal_list, walls_list
+
+    @staticmethod
+    def _format_facts(
+        locations: List[str],
+        goals: List[str],
+        non_goals: List[str],
+        walls: List[str],
+    ) -> List[str]:
+        """Formats the categorized cells into ASP facts."""
+        facts = []
+        if locations:
+            facts.append(f"location({';'.join(locations)}).")
+        if goals:
+            facts.append(f"isgoal({';'.join(goals)}).")
+        if non_goals:
+            facts.append(f"isnongoal({';'.join(non_goals)}).")
+        if walls:
+            facts.append(f"wall({';'.join(walls)}).")
+        return facts
+
+    def _define_relations(self, lines: List[str], height: int, width: int) -> List[str]:
+        """Defines spatial relations (leftOf, below) between cells."""
+        relations = []
+        for r in range(height):
+            row_length = len(lines[r])
+            for c in range(row_length):
+                current_id = self.cell_index(r, c)
+                if c + 1 < row_length:
+                    right_id = self.cell_index(r, c + 1)
+                    relations.append(f"leftOf(l{current_id}, l{right_id}).")
+                if r + 1 < height and c < len(lines[r + 1]):
+                    below_id = self.cell_index(r + 1, c)
+                    relations.append(f"below(l{below_id}, l{current_id}).")
+        return relations
+
+    def _define_initial_positions(
+        self,
+        sokoban_pos: Optional[Tuple[int, int]],
+        crate_positions: Set[Tuple[int, int]],
+        height: int,
+        width: int,
+        lines: List[str],
+        walls: Set[Tuple[int, int]],
+    ) -> List[str]:
+        """Defines the initial positions of the Sokoban and crates."""
+        initial_positions = []
+        if sokoban_pos:
+            sokoban_id = self.cell_index(*sokoban_pos)
+            initial_positions.append(f"at(sokoban, l{sokoban_id}, 0).")
+
+        for i, (r, c) in enumerate(crate_positions, start=1):
+            crate_name = f"crate_{i:02d}"
+            crate_id = self.cell_index(r, c)
+            initial_positions.append(f"at({crate_name}, l{crate_id}, 0).")
+
+        occupied = crate_positions.union({sokoban_pos} if sokoban_pos else set())
+        for r in range(height):
+            row_length = len(lines[r])
+            for c in range(row_length):
+                pos = (r, c)
+                if pos not in occupied and pos not in walls:
+                    cell_id = self.cell_index(r, c)
+                    initial_positions.append(f"clear(l{cell_id}, 0).")
+        return initial_positions
+
+    def solve(self, map_str: str) -> str:
+        """
+        Solves the Sokoban puzzle based on the provided map.
+
+        Args:
+            map_str: String representation of the Sokoban map.
+
+        Returns:
+            A formatted string with the solution steps or "No solution found".
+        """
+        solution_found = False
+        solution_steps: List[str] = []
+        min_steps = 1
+
+        print("Solving Sokoban...\n")
+
+        for steps in range(min_steps, self.max_steps + 1):
+            try:
+                #find optimal plan
+                maxsteps_string = f"maxsteps={min_steps}"
+                ctl = clingo.Control(arguments=["--models=0", "--opt-mode=opt"])
+                ctl.load(self.domain_asp_file)
+
+                instance_facts = self.generate_facts_from_map(map_str, max_steps=steps)
+                ctl.add("base", [], instance_facts)
+                ctl.ground([("base", [])])
+
+                def handle_model(model: clingo.Model):
+                    nonlocal solution_found, solution_steps
+                    solution_found = True
+                    print(f"Found solution: {model}")
+
+                    atoms = [str(atom) for atom in model.symbols(shown=True)]
+                    moves = [atom for atom in atoms if atom.startswith("do(")]
+                    solution_steps.extend(moves)
+
+                print(f"trying to solve with {steps} steps...")
+                ctl.solve(on_model=handle_model)
+
+                if solution_found:
+                    return self._format_solution(solution_steps)
+                else:
+                    ctl.cleanup()
+                    print(f"UNSAT, trying to solve with {steps + 1} steps.  ")
+            except Exception as e:
+                print(f"Error at steps={steps}: {str(e)}")
+
+        return "No solution found"
+
+    def _format_solution(self, steps: List[str]) -> str:
+        """
+        Formats the solution steps into a readable string.
+
+        Args:
+            steps: List of action literals.
+
+        Returns:
+            A formatted solution string.
+        """
+        step_to_action: Dict[int, str] = {}
+        for action_literal in steps:
+            inside = action_literal[len("do("):-1]
             last_comma = inside.rfind(",")
-            step_str = inside[last_comma+1:].strip()
+            step_str = inside[last_comma + 1:].strip()
             try:
                 step_num = int(step_str)
+                action_text = inside[:last_comma].strip()
+                step_to_action[step_num] = action_text
             except ValueError:
-                # Если почему-то не распарсится, 
-                # пропустим это действие
                 continue
-            # само действие = всё, кроме ",T"
-            action_text = inside[:last_comma].strip()
-            step_to_action[step_num] = action_text
-        
-        # Формируем читабельный вывод
+
         if step_to_action:
             max_step = max(step_to_action.keys())
             result_lines = [f"Solution found in {max_step + 1} steps (0..{max_step}):"]
             for t in sorted(step_to_action.keys()):
                 result_lines.append(f"Step {t}: do({step_to_action[t]}, {t})")
             return "\n".join(result_lines)
-        else:
-            return "Solution found (no actions shown?)."
-        
-    except Exception as e:
-        return f"Error solving map: {str(e)}"
+        return "Solution found (no actions shown?)."
+
+    @staticmethod
+    def _estimate_min_steps(map_str: str) -> int:
+        """
+        Estimates the minimum number of steps required based on the map size.
+
+        Args:
+            map_str: String representation of the Sokoban map.
+
+        Returns:
+            An estimated minimum number of steps.
+        """
+        lines = [line.strip() for line in map_str.splitlines() if line.strip()]
+        height = len(lines)
+        width = max(len(row) for row in lines) if lines else 0
+        return math.ceil(math.sqrt(height**2 + width**2))
 
 
-def next_step_map(current_map: str, step: str) -> str:
+class SokobanMap:
     """
-    Обновляет текущее состояние карты Sokoban на основе шага решения.
-
-    Аргументы:
-        current_map: Строка, представляющая текущую карту Sokoban.
-        step: Строка с действием в формате ASP (например, do(push(...)) или do(move(...))).
-
-    Возвращает:
-        Обновлённое состояние карты в строковом виде.
+    Представляет карту Sokoban и предоставляет методы для её обновления и визуализации.
     """
-    map_lines = current_map.strip().split('\n')
-    map_grid = [list(line) for line in map_lines]
-    height = len(map_grid)
-    width = max(len(row) for row in map_grid) if map_grid else 0
 
-    def cell_num_to_coords(N: int) -> tuple[int, int]:
-        """Конвертирует номер клетки lN в координаты (r, c)."""
-        r = (N - 1) // width
-        c = (N - 1) % width
-        return r, c
+    # Константы для символов
+    SYMBOL_WALL = '#'
+    SYMBOL_CRATE = 'C'
+    SYMBOL_GOAL = 'X'
+    SYMBOL_SOKOBAN = 'S'
+    SYMBOL_SOKOBAN_GOAL = 's'
+    SYMBOL_CRATE_GOAL = 'c'
 
-    def set_cell(r: int, c: int, new_value: str):
-        """Устанавливает новое значение в клетке, сохраняя цели ('X')."""
-        if r < 0 or r >= height or c < 0 or c >= len(map_grid[r]):
-            raise ValueError(f"Неверные координаты: ({r}, {c})")
-        current = map_grid[r][c]
-        if current == 'X':  # Если это целевая клетка
-            if new_value == 'S':
-                map_grid[r][c] = 's'  # Сокобан на цели
-            elif new_value == 'C':
-                map_grid[r][c] = 'c'  # Ящик на цели
-            else:
-                map_grid[r][c] = 'X'  # Сбрасываем к цели
-        elif current in ('s', 'c'):  # Сокобан/ящик на цели
-            if new_value == ' ':
-                map_grid[r][c] = 'X'  # Возвращаем цель
-            else:
-                map_grid[r][c] = new_value  # Обновляем значение
-        else:
-            map_grid[r][c] = new_value  # Просто заменяем значение
+    def __init__(self, map_str: str):
+        """
+        Инициализирует SokobanMap.
 
-    # Парсим шаг
-    if step.startswith("do(push"):
-        # Пример: do(push(sokoban, l2, l3, crate_01), T)
-        try:
-            # Извлекаем содержимое внутри do(...)
-            inside = step[len("do(push("):-1]
-            parts = inside.split(', ')
-            sokoban_label = parts[0]
-            from_l = parts[1]
-            to_l = parts[2]
-            crate = parts[3].rstrip(')')
-            # Извлекаем номера клеток
-            from_N = int(from_l[1:])
-            to_N = int(to_l[1:])
-            from_r, from_c = cell_num_to_coords(from_N)
-            to_r, to_c = cell_num_to_coords(to_N)
-
-            # Обновление позиции Сокобана
-            set_cell(from_r, from_c, ' ')  # Сокобан уходит с текущей клетки
-            if map_grid[to_r][to_c] == 'X':
-                map_grid[to_r][to_c] = 's'  # Сокобан на цели
-            else:
-                map_grid[to_r][to_c] = 'S'  # Сокобан на новой клетке
-
-            # Обновление позиции ящика
-            # Предполагаем, что crate находится в from_l и перемещается в to_l
-            # Найдём ящик в from_l
-            if map_grid[from_r][from_c] in ('C', 'c'):
-                set_cell(from_r, from_c, ' ')  # Ящик уходит
-                if map_grid[to_r][to_c] == 'X':
-                    map_grid[to_r][to_c] = 'c'  # Ящик на цели
-                else:
-                    map_grid[to_r][to_c] = 'C'  # Ящик на новой клетке
-            else:
-                raise ValueError(f"Ожидался ящик в клетке l{from_N}, но найден '{map_grid[from_r][from_c]}'")
-        except Exception as e:
-            print(f"Ошибка при обработке шага push: {e}")
-            return current_map
-
-    elif step.startswith("do(move"):
-        # Пример: do(move(sokoban, l2, l3), T)
-        try:
-            # Извлекаем содержимое внутри do(...)
-            inside = step[len("do(move("):-1]
-            parts = inside.split(', ')
-            sokoban_label = parts[0]
-            from_l = parts[1]
-            to_l = parts[2].rstrip(')')
-            # Извлекаем номера клеток
-            from_N = int(from_l[1:])
-            to_N = int(to_l[1:])
-            from_r, from_c = cell_num_to_coords(from_N)
-            to_r, to_c = cell_num_to_coords(to_N)
-
-            # Обновление позиции Сокобана
-            set_cell(from_r, from_c, ' ')  # Сокобан уходит с текущей клетки
-            if map_grid[to_r][to_c] == 'X':
-                map_grid[to_r][to_c] = 's'  # Сокобан на цели
-            else:
-                map_grid[to_r][to_c] = 'S'  # Сокобан на новой клетке
-        except Exception as e:
-            print(f"Ошибка при обработке шага move: {e}")
-            return current_map
-
-    else:
-        print(f"Неизвестный формат шага: {step}")
-        return current_map
-
-    # Конвертируем карту обратно в строку
-    return '\n'.join(''.join(row) for row in map_grid)
-
-
-
-
-def visualize_solution(initial_map: str, solution_steps: list[str]) -> list[str]:
-    """
-    (Опционально) Генерируем последовательность карт после каждого шага.
-    ...
-    """
-    maps = [initial_map]
-    current_map = initial_map
-    for step in solution_steps:
-        current_map = next_step_map(current_map, step)
-        maps.append(current_map)
-    return maps
-
-def print_debug_grid(map_str: str):
-    """
-    Отображает карту Sokoban с индексами ячеек в каждой клетке в формате сетки.
-    Использует символы | и _ для создания границ сетки.
+        Args:
+            map_str: Строковое представление карты Sokoban.
+        """
+        self.map_grid: List[List[str]] = [list(line) for line in map_str.strip().split('\n') if line.strip()]
+        self.height = len(self.map_grid)
+        self.width = max(len(row) for row in self.map_grid) if self.map_grid else 0
     
-    Аргументы:
-        map_str: строка с картой Sokoban (символы #, S, C, X, . и т.д.).
-    """
-    lines = [ln.strip() for ln in map_str.splitlines() if ln.strip() != ""]
-    height = len(lines)
-    width = max(len(row) for row in lines) if lines else 0
+    def _set_cell(self, from_r, from_c, symbol): 
+        self.map_grid[from_r][from_c] = symbol
 
-    def cell_index(r, c):
-        return r * width + c + 1
+    def apply_step(self, step: str) -> None:
+        """
+        Применяет один шаг для обновления карты.
 
-    # Построение верхней границы
-    grid = []
-    grid.append(" " + "____" * width)
+        Args:
+            step: Действие в формате литералов ASP (например, do(push(...)), do(move(...)), do(moveRight(...))).
+        """
+        if step.startswith("do(push"):
+            self._apply_push(step)
+        elif step.startswith("do(move"):
+            self._apply_move(step)
+        else:
+            print(f"Неизвестный формат шага: {step}")
 
-    for r, row in enumerate(lines):
-        row_top = "|".join(f" l{cell_index(r, c):2d} {lines[r][c]}" for c in range(len(row)))  # Номера ячеек
-        grid.append("|" + row_top + "|")
-        grid.append("|" + "______" * len(row) + "|")  # Нижняя граница
+    def _apply_push(self, step: str) -> None:
+        """
+        Применяет действие push к карте.
 
-    # Преобразуем сетку в строку и выводим
-    print("\n".join(grid))
+        Args:
+            step: Литерал действия push, например, do(pushRight(sokoban,l1_4,l1_5,l1_6,crate_01), 3).
+        """
+        try:
+            # Извлекаем содержимое внутри do(pushRight(...), step_num)
+            inside = step[step.find('(')+1 : step.rfind(')')]  # 'pushRight(sokoban,l1_4,l1_5,l1_6,crate_01), 3'
 
+            # Разделяем на действие и номер шага
+            action_str, step_num_str = self._split_step_arguments(inside, expected=2)
+
+            # Парсим строку действия, например, 'pushRight(sokoban,l1_4,l1_5,l1_6,crate_01)'
+            action_name_start = action_str.find('(')
+            if action_name_start == -1:
+                raise ValueError(f"Некорректный формат действия: {action_str}")
+            action_name = action_str[:action_name_start]
+            action_inside = action_str[action_name_start + 1 : -1]  # 'sokoban,l1_4,l1_5,l1_6,crate_01'
+
+            # Разделяем аргументы действия, ожидается 5 аргументов
+            args = self._split_step_arguments(action_inside, expected=5)
+            entity, from_l, to_l, crate_to, crate_name = args
+
+            from_r, from_c = self._cell_id_to_coords(to_l)
+            to_r, to_c = self._cell_id_to_coords(crate_to)
+            self._move_crate(from_r, from_c, to_r, to_c)
+            # Перемещаем Sokoban из from_l в to_l
+            from_r, from_c = self._cell_id_to_coords(from_l)
+            to_r, to_c = self._cell_id_to_coords(to_l)
+            self._move_sokoban(from_r, from_c, to_r, to_c)
+
+        except Exception as e:
+            print(f"Ошибка при обработке шага push '{step}': {e}")
+
+    def _apply_move(self, step: str) -> None:
+        """
+        Применяет действие move к карте.
+
+        Args:
+            step: Литерал действия move (например, do(move(...), step_num), do(moveRight(...), step_num)).
+        """
+        try:
+            # Извлекаем содержимое внутри do(moveRight(sokoban,l1_2,l1_3), 1)
+            start = step.find('(') + 1
+            end = step.rfind(')')
+            inside = step[start:end]  # 'moveRight(sokoban,l1_2,l1_3), 1'
+
+            # Разделяем на действие и номер шага
+            action_str, step_num_str = self._split_step_arguments(inside, expected=2)
+
+            # Теперь парсим строку действия, например, 'moveRight(sokoban,l1_2,l1_3)'
+            action_name_start = action_str.find('(')
+            if action_name_start == -1:
+                raise ValueError(f"Некорректный формат действия: {action_str}")
+            action_name = action_str[:action_name_start]
+            action_inside = action_str[action_name_start + 1:-1]  # 'sokoban,l1_2,l1_3'
+
+            # Разделяем аргументы действия
+            action_parts = self._split_step_arguments(action_inside, expected=3)
+            entity, from_l, to_l = action_parts
+
+            from_r, from_c = self._cell_id_to_coords(from_l)
+            to_r, to_c = self._cell_id_to_coords(to_l)
+
+            # Перемещаем сущность
+            self._move_sokoban(from_r, from_c, to_r, to_c)
+        except Exception as e:
+            print(f"Ошибка при обработке шага move '{step}': {e}")
+
+    def _move_sokoban(self, from_r: int, from_c: int, to_r: int, to_c: int) -> None:
+        """
+        Перемещает Sokoban из одной клетки в другую.
+
+        Args:
+            from_r: Исходная строка.
+            from_c: Исходный столбец.
+            to_r: Целевая строка.
+            to_c: Целевой столбец.
+        """
+        current_symbol = self.map_grid[from_r][from_c]
+        
+        if current_symbol not in (self.SYMBOL_SOKOBAN, self.SYMBOL_SOKOBAN_GOAL):
+            raise ValueError(f"На позиции ({from_r}, {from_c}) нет Sokoban.")
+        
+        # Очистка исходной клетки
+        if (current_symbol == self.SYMBOL_SOKOBAN): self._set_cell(from_r, from_c, ' ')
+        elif (current_symbol == self.SYMBOL_SOKOBAN_GOAL): self._set_cell(from_r, from_c, self.SYMBOL_GOAL)
+        
+        # Обновление целевой клетки
+        if self.map_grid[to_r][to_c] == self.SYMBOL_GOAL:
+            self.map_grid[to_r][to_c] = self.SYMBOL_SOKOBAN_GOAL
+        else:
+            self.map_grid[to_r][to_c] = self.SYMBOL_SOKOBAN
+
+    def _move_crate(self, from_r: int, from_c: int, to_r: int, to_c: int) -> None:
+        """
+        Перемещает коробку из одной клетки в другую.
+
+        Args:
+            from_r: Исходная строка.
+            from_c: Исходный столбец.
+            to_r: Целевая строка.
+            to_c: Целевой столбец.
+        """
+        current_symbol = self.map_grid[from_r][from_c]
+        if current_symbol not in (self.SYMBOL_CRATE, self.SYMBOL_CRATE_GOAL):
+            raise ValueError(f"На позиции ({from_r}, {from_c}) нет коробки.")
+        
+        # Очистка исходной клетки
+        if (current_symbol == self.SYMBOL_CRATE): self._set_cell(from_r, from_c, ' ')
+        elif(current_symbol == self.SYMBOL_CRATE_GOAL): self._set_cell(from_r, from_c, self.SYMBOL_GOAL)
+        
+        # Обновление целевой клетки
+        if self.map_grid[to_r][to_c] == self.SYMBOL_GOAL:
+            self.map_grid[to_r][to_c] = self.SYMBOL_CRATE_GOAL
+        else:
+            self.map_grid[to_r][to_c] = self.SYMBOL_CRATE
+
+
+    def _cell_id_to_coords(self, cell_id: str) -> Tuple[int, int]:
+        """
+        Преобразует идентификатор клетки в координаты строки и столбца.
+
+        Args:
+            cell_id: Идентификатор клетки в формате строки, например, 'l0_1'.
+
+        Returns:
+            Кортеж из двух целых чисел (строка, столбец).
+
+        Raises:
+            ValueError: Если формат идентификатора клетки некорректен.
+        """
+        try:
+            if cell_id.startswith('l'):
+                cell_id = cell_id[1:]
+            row_str, col_str = cell_id.split('_')
+            row = int(row_str)
+            col = int(col_str)
+            return row, col
+        except Exception as e:
+            raise ValueError(f"Некорректный формат cell_id: {cell_id}") from e
+
+    def _split_step_arguments(self, step_str: str, expected: int) -> List[str]:
+        """
+        Разделяет аргументы шага, учитывая вложенные скобки.
+
+        Args:
+            step_str: Строка внутри do(push(...)) или do(move(...)).
+            expected: Ожидаемое количество аргументов.
+
+        Returns:
+            Список аргументов.
+
+        Raises:
+            ValueError: Если количество аргументов не соответствует ожидаемому.
+        """
+        args = []
+        current = ''
+        depth = 0
+        for char in step_str:
+            if char == ',' and depth == 0:
+                args.append(current.strip())
+                current = ''
+            else:
+                if char == '(':
+                    depth += 1
+                elif char == ')':
+                    depth -= 1
+                current += char
+        if current:
+            args.append(current.strip())
+        if len(args) != expected:
+            raise ValueError(f"Ожидалось {expected} аргументов, получено {len(args)} в шаге: {step_str}")
+        return args
+
+    def visualize(self) -> None:
+        """
+        Печатает текущее состояние карты Sokoban.
+        """
+        for row in self.map_grid:
+            print(''.join(row))
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Solve Sokoban puzzles using Clingo.")
+    parser.add_argument("domain_file", help="Path to the ASP domain rules file.")
+    parser.add_argument("map_file", help="Path to the Sokoban map file.")
+    parser.add_argument("--max_steps", type=int, default=50, help="Maximum number of steps to search.")
+    args = parser.parse_args()
+
+    with open(args.map_file, 'r') as f:
+        map_str = f.read()
+
+    solver = SokobanSolver(domain_asp_file=args.domain_file, max_steps=args.max_steps)
+    solution = solver.solve(map_str)
+
+    print(solution)
+
+    # Optional visualization
+    # If you want to visualize each step, you can parse the solution and update the map accordingly
+    map_obj = SokobanMap(map_str)
+    solution_steps = [line for line in solution.splitlines() if line.startswith("Step")]
+    solution_steps = [line.split(": ", 1)[1] for line in solution_steps]
+
+    for i, step in enumerate(solution_steps):
+        map_obj.apply_step(step)
+        print(f"\nAfter step {i + 1}:")
+        map_obj.visualize()
+
+
+if __name__ == "__main__":
+    main()

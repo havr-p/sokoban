@@ -2,70 +2,69 @@ sokoban(sokoban).
 crate(crate_01).
 crate(crate_02).
 crate(crate_03).
-location(l1;l2;l3;l4;l5;l6;l7;l8;l9;l10;l11;l12;l13;l14;l15;l16;l17;l18;l19;l20;l21;l22;l23;l24;l25;l26;l27;l28;l29;l30).
-isgoal(l8;l17;l20).
-isnongoal(l9;l10;l11;l14;l15;l16;l21;l22;l23).
-wall(l1;l2;l3;l4;l5;l6;l7;l12;l13;l18;l19;l24;l25;l26;l27;l28;l29;l30).
-leftOf(l1, l2).
-below(l7, l1).
-leftOf(l2, l3).
-below(l8, l2).
-leftOf(l3, l4).
-below(l9, l3).
-leftOf(l4, l5).
-below(l10, l4).
-leftOf(l5, l6).
-below(l11, l5).
-below(l12, l6).
-leftOf(l7, l8).
-below(l13, l7).
-leftOf(l8, l9).
-below(l14, l8).
-leftOf(l9, l10).
-below(l15, l9).
-leftOf(l10, l11).
-below(l16, l10).
-leftOf(l11, l12).
-below(l17, l11).
-below(l18, l12).
-leftOf(l13, l14).
-below(l19, l13).
-leftOf(l14, l15).
-below(l20, l14).
-leftOf(l15, l16).
-below(l21, l15).
-leftOf(l16, l17).
-below(l22, l16).
-leftOf(l17, l18).
-below(l23, l17).
-below(l24, l18).
-leftOf(l19, l20).
-below(l25, l19).
-leftOf(l20, l21).
-below(l26, l20).
-leftOf(l21, l22).
-below(l27, l21).
-leftOf(l22, l23).
-below(l28, l22).
-leftOf(l23, l24).
-below(l29, l23).
-below(l30, l24).
-leftOf(l25, l26).
-leftOf(l26, l27).
-leftOf(l27, l28).
-leftOf(l28, l29).
-leftOf(l29, l30).
-at(sokoban, l8, 0).
-at(crate_01, l16, 0).
-at(crate_02, l14, 0).
-at(crate_03, l15, 0).
-clear(l9, 0).
-clear(l10, 0).
-clear(l11, 0).
-clear(l17, 0).
-clear(l20, 0).
-clear(l21, 0).
-clear(l22, 0).
-clear(l23, 0).
-#const maxsteps=13.
+location(l0_0;l0_1;l0_2;l0_3;l0_4;l0_5;l1_0;l1_1;l1_2;l1_3;l1_4;l1_5;l2_0;l2_1;l2_2;l2_3;l2_4;l2_5;l3_0;l3_1;l3_2;l3_3;l3_4;l3_5;l4_0;l4_1;l4_2;l4_3;l4_4;l4_5).
+isgoal(l1_1;l2_4;l3_1).
+isnongoal(l1_2;l1_3;l1_4;l2_1;l2_2;l2_3;l3_2;l3_3;l3_4).
+wall(l0_0;l0_1;l0_2;l0_3;l0_4;l0_5;l1_0;l1_5;l2_0;l2_5;l3_0;l3_5;l4_0;l4_1;l4_2;l4_3;l4_4;l4_5).
+leftOf(l0_0, l0_1).
+below(l1_0, l0_0).
+leftOf(l0_1, l0_2).
+below(l1_1, l0_1).
+leftOf(l0_2, l0_3).
+below(l1_2, l0_2).
+leftOf(l0_3, l0_4).
+below(l1_3, l0_3).
+leftOf(l0_4, l0_5).
+below(l1_4, l0_4).
+below(l1_5, l0_5).
+leftOf(l1_0, l1_1).
+below(l2_0, l1_0).
+leftOf(l1_1, l1_2).
+below(l2_1, l1_1).
+leftOf(l1_2, l1_3).
+below(l2_2, l1_2).
+leftOf(l1_3, l1_4).
+below(l2_3, l1_3).
+leftOf(l1_4, l1_5).
+below(l2_4, l1_4).
+below(l2_5, l1_5).
+leftOf(l2_0, l2_1).
+below(l3_0, l2_0).
+leftOf(l2_1, l2_2).
+below(l3_1, l2_1).
+leftOf(l2_2, l2_3).
+below(l3_2, l2_2).
+leftOf(l2_3, l2_4).
+below(l3_3, l2_3).
+leftOf(l2_4, l2_5).
+below(l3_4, l2_4).
+below(l3_5, l2_5).
+leftOf(l3_0, l3_1).
+below(l4_0, l3_0).
+leftOf(l3_1, l3_2).
+below(l4_1, l3_1).
+leftOf(l3_2, l3_3).
+below(l4_2, l3_2).
+leftOf(l3_3, l3_4).
+below(l4_3, l3_3).
+leftOf(l3_4, l3_5).
+below(l4_4, l3_4).
+below(l4_5, l3_5).
+leftOf(l4_0, l4_1).
+leftOf(l4_1, l4_2).
+leftOf(l4_2, l4_3).
+leftOf(l4_3, l4_4).
+leftOf(l4_4, l4_5).
+at(sokoban, l1_1, 0).
+at(crate_01, l2_3, 0).
+at(crate_02, l2_1, 0).
+at(crate_03, l2_2, 0).
+clear(l1_2, 0).
+clear(l1_3, 0).
+clear(l1_4, 0).
+clear(l2_4, 0).
+clear(l3_1, 0).
+clear(l3_2, 0).
+clear(l3_3, 0).
+clear(l3_4, 0).
 time(0..maxsteps).
