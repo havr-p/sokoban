@@ -66,6 +66,22 @@ class SokobanVisualizer:
         )
         self.canvas.pack(pady=10)
 
+        # Frame for navigation buttons
+        nav_frame = tk.Frame(self.visual_tab)
+        nav_frame.pack(pady=5)
+
+        # Previous Step Button
+        self.prev_button = tk.Button(nav_frame, text="Previous Step", command=self.prev_step, state=tk.DISABLED, width=15)
+        self.prev_button.grid(row=0, column=0, padx=5)
+
+        # Next Step Button
+        self.next_button = tk.Button(nav_frame, text="Next Step", command=self.next_step, state=tk.DISABLED, width=15)
+        self.next_button.grid(row=0, column=1, padx=5)
+
+        # Reset Button
+        self.reset_button = tk.Button(nav_frame, text="Reset", command=self.reset, state=tk.DISABLED, width=10)
+        self.reset_button.grid(row=0, column=2, padx=5)
+
         # Text widget for ASP Map
         self.asp_text = scrolledtext.ScrolledText(self.asp_map_tab, wrap=tk.WORD, width=60, height=25)
         self.asp_text.pack(padx=10, pady=10)
@@ -128,25 +144,40 @@ class SokobanVisualizer:
             return
 
         # Initialize SokobanMap
-        map_str = SokobanMap.read_map_file(map_path)
-        self.sokoban_map = SokobanMap(map_str)
-        self.maps = [map_str]
+        try:
+            map_str = SokobanMap.read_map_file(map_path)  # Now works correctly
+        except Exception as e:
+            messagebox.showerror("Map Read Error", f"An error occurred while reading the map file:\n{e}")
+            return
 
-        # Apply each step and generate intermediate maps
-        for step in self.solution_steps:
-            self.sokoban_map.apply_step(step)
-            map_str = '\n'.join(''.join(row) for row in self.sokoban_map.map_grid)
-            self.maps.append(map_str)
+        self.sokoban_map = SokobanMap(map_str)
+
+        # Gather map steps using the new method
+        try:
+            self.maps = self.sokoban_map.get_map_steps(self.solution_steps)
+        except Exception as e:
+            messagebox.showerror("Map Steps Error", f"An error occurred while gathering map steps:\n{e}")
+            return
 
         self.current_step = 0
 
         # Display Generated ASP Map
         generated_map_path = os.path.join(self.MAPS_OUT_DIR, f"generated_{selected_map}")
-        SokobanMap.write_map_file(generated_map_path, self.maps[-1])
-        self.display_generated_asp_map(generated_map_path)
+        try:
+            SokobanMap.write_map_file(generated_map_path, self.maps[-1])  # Now works correctly
+            self.display_generated_asp_map(generated_map_path)
+        except Exception as e:
+            messagebox.showerror("ASP Map Write Error", f"An error occurred while writing the generated ASP map:\n{e}")
 
         # Render the initial map
         self.render_map(self.maps[self.current_step])
+
+        # Enable navigation buttons if there are steps to navigate
+        if len(self.maps) > 1:
+            self.next_button.config(state=tk.NORMAL)
+            self.reset_button.config(state=tk.NORMAL)
+            # Disable Previous button initially
+            self.prev_button.config(state=tk.DISABLED)
 
         messagebox.showinfo("Test Completed", f"Test for {selected_map} completed successfully.")
 
@@ -178,6 +209,9 @@ class SokobanVisualizer:
         except FileNotFoundError:
             self.asp_text.delete(1.0, tk.END)
             self.asp_text.insert(tk.END, f"Generated ASP map file not found: {asp_map_path}")
+        except Exception as e:
+            self.asp_text.delete(1.0, tk.END)
+            self.asp_text.insert(tk.END, f"Error reading ASP map file: {e}")
 
     def render_map(self, map_str: str):
         """Render the given map string onto the Tkinter Canvas."""
@@ -257,16 +291,41 @@ class SokobanVisualizer:
             self.current_step += 1
             self.render_map(self.maps[self.current_step])
 
+            # Enable Previous button if not at the first step
+            if self.current_step > 0:
+                self.prev_button.config(state=tk.NORMAL)
+
+            # Disable Next button if at the last step
+            if self.current_step == len(self.maps) - 1:
+                self.next_button.config(state=tk.DISABLED)
+
     def prev_step(self):
         """Go to the previous step and render the map."""
         if self.current_step > 0:
             self.current_step -= 1
             self.render_map(self.maps[self.current_step])
 
+            # Enable Next button if not at the last step
+            if self.current_step < len(self.maps) - 1:
+                self.next_button.config(state=tk.NORMAL)
+
+            # Disable Previous button if at the first step
+            if self.current_step == 0:
+                self.prev_button.config(state=tk.DISABLED)
+
     def reset(self):
         """Reset the visualization to the initial state."""
         self.current_step = 0
         self.render_map(self.maps[self.current_step])
+
+        # Disable Previous button as we're at the first step
+        self.prev_button.config(state=tk.DISABLED)
+
+        # Enable Next button if there are steps to navigate
+        if len(self.maps) > 1:
+            self.next_button.config(state=tk.NORMAL)
+        else:
+            self.next_button.config(state=tk.DISABLED)
 
 
 def visualize_solution():
