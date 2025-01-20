@@ -144,8 +144,7 @@ python visualizer.py
 ### Control Switches
 
 - `--map=<map_file>`: Specify a single map to test (e.g., `--map=map1.txt`). If not provided, all maps are tested.
-- `--max_steps=<number>`: Set the maximum number of steps the solver should search for a solution. Default is 50.
-- Additional switches can be configured in the `conftest.py` and `test_solver.py` for testing purposes.
+(by commenting out tests from get_test_cases in conftest.py you can force to run several selected tests with "pytest" command)
 
 ### Sample Input and Output
 
