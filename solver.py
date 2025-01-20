@@ -187,7 +187,7 @@ class SokobanSolver:
         start_time = datetime.datetime.now().time().strftime('%H:%M:%S')
         instance_facts = self.generate_facts_from_map(map_str)
         end_time = datetime.datetime.now().time().strftime('%H:%M:%S')
-        total_time=(datetime.datetime.strptime(end_time,'%H:%M:%S') - datetime.datetime.strptime(start_time,'%H:%M:%S'))
+        total_time = (datetime.datetime.strptime(end_time, '%H:%M:%S') - datetime.datetime.strptime(start_time, '%H:%M:%S'))
         print(f"\nfact generation took: {total_time}")
 
         print(f"Generating plans of length: ", end='')
@@ -195,7 +195,7 @@ class SokobanSolver:
         for steps in range(min_steps, self.max_steps + 1):
             print(f"{steps}...", end='')
             try:
-                #find optimal plan
+                # Find optimal plan
                 maxsteps_string = f"maxsteps={steps}"
                 ctl = clingo.Control(arguments=["--models=0", "--opt-mode=opt", '--stats', '--const', maxsteps_string])
                 ctl.load(self.domain_asp_file)
@@ -203,7 +203,7 @@ class SokobanSolver:
                 start_time = datetime.datetime.now().time().strftime('%H:%M:%S')
                 ctl.ground([("base", [])])
                 end_time = datetime.datetime.now().time().strftime('%H:%M:%S')
-                total_time=(datetime.datetime.strptime(end_time,'%H:%M:%S') - datetime.datetime.strptime(start_time,'%H:%M:%S'))
+                total_time = (datetime.datetime.strptime(end_time, '%H:%M:%S') - datetime.datetime.strptime(start_time, '%H:%M:%S'))
                 #print(f"\ngrounding took: {total_time}")
 
                 def handle_model(model: clingo.Model):
@@ -280,10 +280,10 @@ class SokobanSolver:
 
 class SokobanMap:
     """
-    Представляет карту Sokoban и предоставляет методы для её обновления и визуализации.
+    Represents a Sokoban map and provides methods for updating and visualizing it.
     """
 
-    # Константы для символов
+    # Constants for symbols
     SYMBOL_WALL = '#'
     SYMBOL_CRATE = 'C'
     SYMBOL_GOAL = 'X'
@@ -293,10 +293,10 @@ class SokobanMap:
 
     def __init__(self, map_str: str):
         """
-        Инициализирует SokobanMap.
+        Initializes SokobanMap.
 
         Args:
-            map_str: Строковое представление карты Sokoban.
+            map_str: String representation of the Sokoban map.
         """
         self.map_grid: List[List[str]] = [list(line) for line in map_str.strip().split('\n') if line.strip()]
         self.height = len(self.map_grid)
@@ -307,40 +307,40 @@ class SokobanMap:
 
     def apply_step(self, step: str) -> None:
         """
-        Применяет один шаг для обновления карты.
+        Applies one step to update the map.
 
         Args:
-            step: Действие в формате литералов ASP (например, do(push(...)), do(move(...)), do(moveRight(...))).
+            step: Action in the format of ASP literals (e.g., do(push(...)), do(move(...)), do(moveRight(...))).
         """
         if step.startswith("do(push"):
             self._apply_push(step)
         elif step.startswith("do(move"):
             self._apply_move(step)
         else:
-            print(f"Неизвестный формат шага: {step}")
+            print(f"Unknown step format: {step}")
 
     def _apply_push(self, step: str) -> None:
         """
-        Применяет действие push к карте.
+        Applies a push action to the map.
 
         Args:
-            step: Литерал действия push, например, do(pushRight(sokoban,l1_4,l1_5,l1_6,crate_01), 3).
+            step: Push action literal, e.g., do(pushRight(sokoban,l1_4,l1_5,l1_6,crate_01), 3).
         """
         try:
-            # Извлекаем содержимое внутри do(pushRight(...), step_num)
+            # Extract content inside do(pushRight(...), step_num)
             inside = step[step.find('(')+1 : step.rfind(')')]  # 'pushRight(sokoban,l1_4,l1_5,l1_6,crate_01), 3'
 
-            # Разделяем на действие и номер шага
+            # Split into action and step number
             action_str, step_num_str = self._split_step_arguments(inside, expected=2)
 
-            # Парсим строку действия, например, 'pushRight(sokoban,l1_4,l1_5,l1_6,crate_01)'
+            # Parse action string, e.g., 'pushRight(sokoban,l1_4,l1_5,l1_6,crate_01)'
             action_name_start = action_str.find('(')
             if action_name_start == -1:
-                raise ValueError(f"Некорректный формат действия: {action_str}")
+                raise ValueError(f"Incorrect action format: {action_str}")
             action_name = action_str[:action_name_start]
             action_inside = action_str[action_name_start + 1 : -1]  # 'sokoban,l1_4,l1_5,l1_6,crate_01'
 
-            # Разделяем аргументы действия, ожидается 5 аргументов
+            # Split action arguments, expecting 5 arguments
             args = self._split_step_arguments(action_inside, expected=5)
             #print(f"args: {args}")
             entity, from_l, to_l, crate_to, crate_name = args
@@ -348,71 +348,73 @@ class SokobanMap:
             from_r, from_c = self._cell_id_to_coords(to_l)
             to_r, to_c = self._cell_id_to_coords(crate_to)
             self._move_crate(from_r, from_c, to_r, to_c)
-            # Перемещаем Sokoban из from_l в to_l
+            # Move Sokoban from from_l to to_l
             from_r, from_c = self._cell_id_to_coords(from_l)
             to_r, to_c = self._cell_id_to_coords(to_l)
             self._move_sokoban(from_r, from_c, to_r, to_c)
 
         except Exception as e:
-            print(f"Ошибка при обработке шага push '{step}': {e}")
+            print(f"Error processing push step '{step}': {e}")
 
     def _apply_move(self, step: str) -> None:
         """
-        Применяет действие move к карте.
+        Applies a move action to the map.
 
         Args:
-            step: Литерал действия move (например, do(move(...), step_num), do(moveRight(...), step_num)).
+            step: Move action literal (e.g., do(move(...), step_num), do(moveRight(...), step_num)).
         """
         try:
-            # Извлекаем содержимое внутри do(moveRight(sokoban,l1_2,l1_3), 1)
+            # Extract content inside do(moveRight(sokoban,l1_2,l1_3), 1)
             start = step.find('(') + 1
             end = step.rfind(')')
             inside = step[start:end]  # 'moveRight(sokoban,l1_2,l1_3), 1'
 
-            # Разделяем на действие и номер шага
+            # Split into action and step number
             action_str, step_num_str = self._split_step_arguments(inside, expected=2)
 
-            # Теперь парсим строку действия, например, 'moveRight(sokoban,l1_2,l1_3)'
+            # Now parse action string, e.g., 'moveRight(sokoban,l1_2,l1_3)'
             action_name_start = action_str.find('(')
             if action_name_start == -1:
-                raise ValueError(f"Некорректный формат действия: {action_str}")
+                raise ValueError(f"Incorrect action format: {action_str}")
             action_name = action_str[:action_name_start]
             action_inside = action_str[action_name_start + 1:-1]  # 'sokoban,l1_2,l1_3'
 
-            # Разделяем аргументы действия
+            # Split action arguments
             action_parts = self._split_step_arguments(action_inside, expected=3)
             entity, from_l, to_l = action_parts
 
             from_r, from_c = self._cell_id_to_coords(from_l)
             to_r, to_c = self._cell_id_to_coords(to_l)
 
-            # Перемещаем сущность
+            # Move the entity
             self._move_sokoban(from_r, from_c, to_r, to_c)
         except Exception as e:
-            print(f"Ошибка при обработке шага move '{step}': {e}")
+            print(f"Error processing move step '{step}': {e}")
 
     def _move_sokoban(self, from_r: int, from_c: int, to_r: int, to_c: int) -> None:
         """
-        Перемещает Sokoban из одной клетки в другую.
+        Moves Sokoban from one cell to another.
 
         Args:
-            from_r: Исходная строка.
-            from_c: Исходный столбец.
-            to_r: Целевая строка.
-            to_c: Целевой столбец.
+            from_r: Starting row.
+            from_c: Starting column.
+            to_r: Target row.
+            to_c: Target column.
         """
         current_symbol = self.map_grid[from_r][from_c]
         #print(f"current symbol: '{current_symbol}'")
-        print(f"current location: {(from_r,from_c)}")
+        print(f"current location: {(from_r, from_c)}")
         
         if current_symbol not in (self.SYMBOL_SOKOBAN, self.SYMBOL_SOKOBAN_GOAL):
-            raise ValueError(f"На позиции ({from_r}, {from_c}) нет Sokoban.")
+            raise ValueError(f"There is no Sokoban at position ({from_r}, {from_c}).")
         
-        # Очистка исходной клетки
-        if (current_symbol == self.SYMBOL_SOKOBAN): self._set_cell(from_r, from_c, ' ')
-        elif (current_symbol == self.SYMBOL_SOKOBAN_GOAL): self._set_cell(from_r, from_c, self.SYMBOL_GOAL)
+        # Clear the original cell
+        if current_symbol == self.SYMBOL_SOKOBAN:
+            self._set_cell(from_r, from_c, ' ')
+        elif current_symbol == self.SYMBOL_SOKOBAN_GOAL:
+            self._set_cell(from_r, from_c, self.SYMBOL_GOAL)
         
-        # Обновление целевой клетки
+        # Update the target cell
         if self.map_grid[to_r][to_c] == self.SYMBOL_GOAL:
             self.map_grid[to_r][to_c] = self.SYMBOL_SOKOBAN_GOAL
         else:
@@ -420,26 +422,28 @@ class SokobanMap:
 
     def _move_crate(self, from_r: int, from_c: int, to_r: int, to_c: int) -> None:
         """
-        Перемещает коробку из одной клетки в другую.
+        Moves a crate from one cell to another.
 
         Args:
-            from_r: Исходная строка.
-            from_c: Исходный столбец.
-            to_r: Целевая строка.
-            to_c: Целевой столбец.
+            from_r: Starting row.
+            from_c: Starting column.
+            to_r: Target row.
+            to_c: Target column.
         """
         current_symbol = self.map_grid[from_r][from_c]
         #print(f"current symbol: '{current_symbol}'")
-        print(f"current location: {(from_r,from_c)}")
-        assert current_symbol in (self.SYMBOL_CRATE, self.SYMBOL_CRATE_GOAL), f"На позиции ({from_r}, {from_c}) нет коробки."
+        print(f"current location: {(from_r, from_c)}")
+        assert current_symbol in (self.SYMBOL_CRATE, self.SYMBOL_CRATE_GOAL), f"There is no crate at position ({from_r}, {from_c})."
         if current_symbol not in (self.SYMBOL_CRATE, self.SYMBOL_CRATE_GOAL):
-            raise ValueError(f"На позиции ({from_r}, {from_c}) нет коробки.")
+            raise ValueError(f"There is no crate at position ({from_r}, {from_c}).")
         
-        # Очистка исходной клетки
-        if (current_symbol == self.SYMBOL_CRATE): self._set_cell(from_r, from_c, ' ')
-        elif(current_symbol == self.SYMBOL_CRATE_GOAL): self._set_cell(from_r, from_c, self.SYMBOL_GOAL)
+        # Clear the original cell
+        if current_symbol == self.SYMBOL_CRATE:
+            self._set_cell(from_r, from_c, ' ')
+        elif current_symbol == self.SYMBOL_CRATE_GOAL:
+            self._set_cell(from_r, from_c, self.SYMBOL_GOAL)
         
-        # Обновление целевой клетки
+        # Update the target cell
         if self.map_grid[to_r][to_c] == self.SYMBOL_GOAL:
             self.map_grid[to_r][to_c] = self.SYMBOL_CRATE_GOAL
         else:
@@ -448,16 +452,16 @@ class SokobanMap:
 
     def _cell_id_to_coords(self, cell_id: str) -> Tuple[int, int]:
         """
-        Преобразует идентификатор клетки в координаты строки и столбца.
+        Converts a cell identifier to row and column coordinates.
 
         Args:
-            cell_id: Идентификатор клетки в формате строки, например, 'l0_1'.
+            cell_id: Cell identifier in string format, e.g., 'l0_1'.
 
         Returns:
-            Кортеж из двух целых чисел (строка, столбец).
+            A tuple of two integers (row, column).
 
         Raises:
-            ValueError: Если формат идентификатора клетки некорректен.
+            ValueError: If the cell identifier format is incorrect.
         """
         try:
             if cell_id.startswith('l'):
@@ -467,21 +471,21 @@ class SokobanMap:
             col = int(col_str)
             return row, col
         except Exception as e:
-            raise ValueError(f"Некорректный формат cell_id: {cell_id}") from e
+            raise ValueError(f"Incorrect cell_id format: {cell_id}") from e
 
     def _split_step_arguments(self, step_str: str, expected: int) -> List[str]:
         """
-        Разделяет аргументы шага, учитывая вложенные скобки.
+        Splits step arguments, considering nested parentheses.
 
         Args:
-            step_str: Строка внутри do(push(...)) или do(move(...)).
-            expected: Ожидаемое количество аргументов.
+            step_str: String inside do(push(...)) or do(move(...)).
+            expected: Expected number of arguments.
 
         Returns:
-            Список аргументов.
+            List of arguments.
 
         Raises:
-            ValueError: Если количество аргументов не соответствует ожидаемому.
+            ValueError: If the number of arguments does not match the expected.
         """
         args = []
         current = ''
@@ -499,12 +503,12 @@ class SokobanMap:
         if current:
             args.append(current.strip())
         if len(args) != expected:
-            raise ValueError(f"Ожидалось {expected} аргументов, получено {len(args)} в шаге: {step_str}")
+            raise ValueError(f"Expected {expected} arguments, got {len(args)} in step: {step_str}")
         return args
 
     def visualize(self) -> None:
         """
-        Печатает текущее состояние карты Sokoban.
+        Prints the current state of the Sokoban map.
         """
         for row in self.map_grid:
             print(''.join(row))
