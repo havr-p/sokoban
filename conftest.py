@@ -14,3 +14,7 @@ def pytest_addoption(parser):
 @pytest.fixture
 def selected_map(request):
     return request.config.getoption("--map")
+
+def pytest_keyboard_interrupt(excinfo):
+    # Calling tearDown.
+    pass

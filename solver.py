@@ -11,7 +11,7 @@ class SokobanSolver:
     A solver for Sokoban puzzles using the Clingo ASP solver.
     """
 
-    def __init__(self, domain_asp_file: str, max_steps: int = 10):
+    def __init__(self, domain_asp_file: str, max_steps: int = 50):
         """
         Initializes the SokobanSolver.
 
@@ -182,9 +182,11 @@ class SokobanSolver:
         solution_steps: List[str] = []
         min_steps = 1
 
-        print("Solving Sokoban...\n")
+        print("\nSolving Sokoban...\n")
+        print(f"Generating plans of length: ", end='')
 
         for steps in range(min_steps, self.max_steps + 1):
+            print(f"{steps}...", end='')
             try:
                 #find optimal plan
                 maxsteps_string = f"maxsteps={  steps}"
@@ -198,20 +200,19 @@ class SokobanSolver:
                 def handle_model(model: clingo.Model):
                     nonlocal solution_found, solution_steps
                     solution_found = True
-                    print(f"Found solution: {model}")
+                    print(f"\nFound solution: {model}")
 
                     atoms = [str(atom) for atom in model.symbols(shown=True)]
                     moves = [atom for atom in atoms if atom.startswith("do(")]
                     solution_steps.extend(moves)
 
-                print(f"trying to solve with {steps} steps...")
                 ctl.solve(on_model=handle_model)
 
                 if solution_found:
                     return self._format_solution(solution_steps)
                 else:
                     ctl.cleanup()
-                    print(f"UNSAT, trying to solve with {steps + 1} steps.  ")
+                    print(f"UNSAT, trying with ", end='')
             except Exception as e:
                 print(f"Error at steps={steps}: {str(e)}")
 
@@ -508,12 +509,14 @@ def main():
     # Optional visualization
     # If you want to visualize each step, you can parse the solution and update the map accordingly
     map_obj = SokobanMap(map_str)
+    print("initial map state")
+    print(map_str)
     solution_steps = [line for line in solution.splitlines() if line.startswith("Step")]
     solution_steps = [line.split(": ", 1)[1] for line in solution_steps]
 
     for i, step in enumerate(solution_steps):
         map_obj.apply_step(step)
-        print(f"\nAfter step {i + 1}:")
+        print(f"\nAfter step {i}:")
         map_obj.visualize()
 
 
