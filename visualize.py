@@ -19,7 +19,7 @@ class SokobanVisualizer:
         self.EXPECTED_DIR = os.path.join(self.BASE_DIR, 'expected')
         self.MAPS_OUT_DIR = os.path.join(self.BASE_DIR, 'maps_out')
         self.DOMAIN_FILE = os.path.join(self.BASE_DIR, "sokoban.lp")
-        self.TEST_FILE = os.path.join(self.BASE_DIR, "map_test.py")
+        self.TEST_FILE = os.path.join(self.BASE_DIR, "test_solver.py")
 
         os.makedirs(self.MAPS_OUT_DIR, exist_ok=True)
 
