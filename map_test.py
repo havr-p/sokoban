@@ -96,7 +96,7 @@ def compare_facts_detailed(expected: str, actual: str) -> str:
     #("map4.txt", "expected4.txt"),
       #("map5.txt", "expected5.txt"),
       #("map6.txt", "expected6.txt"),
-      #("map7.txt", "expected7.txt"),
+      ("map7.txt", "expected7.txt"),
       #("map8.txt", "expected8.txt"),
       #("map9.txt", "expected9.txt"),
       #("map10.txt", "expected10.txt"),
@@ -107,19 +107,19 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str, selected_map: st
     which checks various maps and their expected ASP facts.
     """
     map_path = os.path.join(MAPS_DIR, map_file)
-    expected_path = os.path.join(EXPECTED_DIR, expected_file)
+    #expected_path = os.path.join(EXPECTED_DIR, expected_file)
 
     map_str = read_file(map_path)
-    expected_output = read_file(expected_path)
+    #expected_output = read_file(expected_path)
 
     solver = SokobanSolver(domain_asp_file=os.path.join(BASE_DIR, "sokoban.lp"))
-    # actual_output = solver.generate_facts_from_map(map_str, 10) 
+    actual_output = solver.generate_facts_from_map(map_str) 
 
-    # os.makedirs(MAPS_OUT_DIR, exist_ok=True)
-    # actual_output_path = os.path.join(MAPS_OUT_DIR, f"generated_{map_file}")
+    os.makedirs(MAPS_OUT_DIR, exist_ok=True)
+    actual_output_path = os.path.join(MAPS_OUT_DIR, f"generated_{map_file}")
 
-    # with open(actual_output_path, 'w', encoding='utf-8') as file:
-    #     file.write(actual_output)
+    with open(actual_output_path, 'w', encoding='utf-8') as file:
+         file.write(actual_output)
 
     # def filter_facts(output: str) -> Set[str]:
     #     """Filters out lines starting with 'step(' and '#const maxsteps'."""
@@ -148,7 +148,6 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str, selected_map: st
 
     # Visualize solution
     map_obj = SokobanMap(map_str)
-    maps = SokobanMap.visualize  # Assigning for clarity
     print("\ninitial map state:")
     print(map_str)
 
@@ -156,10 +155,3 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str, selected_map: st
         map_obj.apply_step(step)
         print(f"\nAfter step {i}: {step}")
         map_obj.visualize()
-
-    # Optionally, validate the solution using ASP validator
-    # Uncomment if you have an ASP validator implementation
-    # try:
-    #     validate_asp_encoding(map_str, actual_output)
-    # except AssertionError as e:
-    #     pytest.fail(f"\nValidation failed for {map_file}! Differences found:\n\n{str(e)}")

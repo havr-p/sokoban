@@ -1,9 +1,12 @@
 # solver.py
 
+from json import dumps
 import clingo
 import argparse
 import math
 from typing import List, Tuple, Set, Optional, Dict
+import datetime
+import time
 
 
 class SokobanSolver:
@@ -27,7 +30,7 @@ class SokobanSolver:
         """Generates a unique cell identifier based on row and column."""
         return f"{row}_{col}"
 
-    def generate_facts_from_map(self, map_str: str, max_steps: int) -> str:
+    def generate_facts_from_map(self, map_str: str) -> str:
         """
         Converts the Sokoban map into ASP facts.
 
@@ -181,6 +184,11 @@ class SokobanSolver:
         solution_found = False
         solution_steps: List[str] = []
         min_steps = 1
+        start_time = datetime.datetime.now().time().strftime('%H:%M:%S')
+        instance_facts = self.generate_facts_from_map(map_str)
+        end_time = datetime.datetime.now().time().strftime('%H:%M:%S')
+        total_time=(datetime.datetime.strptime(end_time,'%H:%M:%S') - datetime.datetime.strptime(start_time,'%H:%M:%S'))
+        print(f"\nfact generation took: {total_time}")
 
         print("\nSolving Sokoban...\n")
         print(f"Generating plans of length: ", end='')
@@ -189,13 +197,15 @@ class SokobanSolver:
             print(f"{steps}...", end='')
             try:
                 #find optimal plan
-                maxsteps_string = f"maxsteps={  steps}"
-                ctl = clingo.Control(arguments=["--models=0", "--opt-mode=opt", '--const', maxsteps_string])
+                maxsteps_string = f"maxsteps={steps}"
+                ctl = clingo.Control(arguments=["--models=0", "--opt-mode=opt", '--stats', '--const', maxsteps_string])
                 ctl.load(self.domain_asp_file)
-
-                instance_facts = self.generate_facts_from_map(map_str, max_steps=steps)
                 ctl.add("base", [], instance_facts)
+                start_time = datetime.datetime.now().time().strftime('%H:%M:%S')
                 ctl.ground([("base", [])])
+                end_time = datetime.datetime.now().time().strftime('%H:%M:%S')
+                total_time=(datetime.datetime.strptime(end_time,'%H:%M:%S') - datetime.datetime.strptime(start_time,'%H:%M:%S'))
+                #print(f"\ngrounding took: {total_time}")
 
                 def handle_model(model: clingo.Model):
                     nonlocal solution_found, solution_steps
@@ -206,7 +216,11 @@ class SokobanSolver:
                     moves = [atom for atom in atoms if atom.startswith("do(")]
                     solution_steps.extend(moves)
 
-                ctl.solve(on_model=handle_model)
+                ctl.solve(on_model=handle_model, on_statistics=print(dumps(
+                    ctl.statistics['summary']['times'],
+                        sort_keys=True,
+                        indent=4,
+                        separators=(',', ': '))), on_core=print, on_finish=print)
 
                 if solution_found:
                     return self._format_solution(solution_steps)
@@ -329,6 +343,7 @@ class SokobanMap:
 
             # Разделяем аргументы действия, ожидается 5 аргументов
             args = self._split_step_arguments(action_inside, expected=5)
+            print(f"args: {args}")
             entity, from_l, to_l, crate_to, crate_name = args
 
             from_r, from_c = self._cell_id_to_coords(to_l)
@@ -388,6 +403,8 @@ class SokobanMap:
             to_c: Целевой столбец.
         """
         current_symbol = self.map_grid[from_r][from_c]
+        print(f"current symbol: '{current_symbol}'")
+        print(f"current location: {(from_r,from_c)}")
         
         if current_symbol not in (self.SYMBOL_SOKOBAN, self.SYMBOL_SOKOBAN_GOAL):
             raise ValueError(f"На позиции ({from_r}, {from_c}) нет Sokoban.")
@@ -413,6 +430,9 @@ class SokobanMap:
             to_c: Целевой столбец.
         """
         current_symbol = self.map_grid[from_r][from_c]
+        print(f"current symbol: '{current_symbol}'")
+        print(f"current location: '({(from_r,from_c)})'")
+        assert current_symbol in (self.SYMBOL_CRATE, self.SYMBOL_CRATE_GOAL), f"На позиции ({from_r}, {from_c}) нет коробки."
         if current_symbol not in (self.SYMBOL_CRATE, self.SYMBOL_CRATE_GOAL):
             raise ValueError(f"На позиции ({from_r}, {from_c}) нет коробки.")
         

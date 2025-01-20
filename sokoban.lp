@@ -180,24 +180,24 @@ clear(L,T+1) :-
 :- do(moveDown(S,X,Y), T), not clear(Y,T).
 
 % pushLeft
-:- do(pushLeft(S,X,Y,Z,C), T), not at(S,X,T).
-:- do(pushLeft(S,X,Y,Z,C), T), not at(C,Y,T).
-:- do(pushLeft(S,X,Y,Z,C), T), not clear(Z,T).
+:- do(pushLeft(S,X,Y,Z,C), T), not at(S,X,T), crate(C).
+:- do(pushLeft(S,X,Y,Z,C), T), not at(C,Y,T), crate(C).
+:- do(pushLeft(S,X,Y,Z,C), T), not clear(Z,T), crate(C).
 
 % pushRight
-:- do(pushRight(S,X,Y,Z,C), T), not at(S,X,T).
-:- do(pushRight(S,X,Y,Z,C), T), not at(C,Y,T).
-:- do(pushRight(S,X,Y,Z,C), T), not clear(Z,T).
+:- do(pushRight(S,X,Y,Z,C), T), not at(S,X,T), crate(C).
+:- do(pushRight(S,X,Y,Z,C), T), not at(C,Y,T), crate(C).
+:- do(pushRight(S,X,Y,Z,C), T), not clear(Z,T), crate(C).
 
 % pushUp
-:- do(pushUp(S,X,Y,Z,C), T), not at(S,X,T).
-:- do(pushUp(S,X,Y,Z,C), T), not at(C,Y,T).
-:- do(pushUp(S,X,Y,Z,C), T), not clear(Z,T).
+:- do(pushUp(S,X,Y,Z,C), T), not at(S,X,T), crate(C).
+:- do(pushUp(S,X,Y,Z,C), T), not at(C,Y,T), crate(C).
+:- do(pushUp(S,X,Y,Z,C), T), not clear(Z,T), crate(C).
 
 % pushDown
-:- do(pushDown(S,X,Y,Z,C), T), not at(S,X,T).
-:- do(pushDown(S,X,Y,Z,C), T), not at(C,Y,T).
-:- do(pushDown(S,X,Y,Z,C), T), not clear(Z,T).
+:- do(pushDown(S,X,Y,Z,C), T), not at(S,X,T), crate(C).
+:- do(pushDown(S,X,Y,Z,C), T), not at(C,Y,T), crate(C).
+:- do(pushDown(S,X,Y,Z,C), T), not clear(Z,T), crate(C).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 9) ПОЛОЖИТЕЛЬНЫЕ И ОТРИЦАТЕЛЬНЫЕ ЭФФЕКТЫ
@@ -464,7 +464,25 @@ clear(X,T+1) :-
 #minimize{1,T : do(M,T)}.
 #minimize{T : do(_,T)}.
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ограничения: Количество стен и ящиков не меняется
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Определяем общее количество стен на карте
+total_walls(N) :- N = #count{L : wall(L)}.
+
+% Ограничение: Для каждого момента времени T количество стен остаётся равным N
+:- time(T), total_walls(N), N != #count{L : wall(L)}.
+
+% Определяем общее количество ящиков на карте
+total_crates(M) :- M = #count{C : crate(C)}.
+
+% Ограничение: Для каждого момента времени T количество ящиков остаётся равным M
+:- time(T), total_crates(M), M != #count{C : at(C,L,T), crate(C)}.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 11) ВЫВОД ДЕЙСТВИЙ
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 #show do/2.
+#show total_crates/1.
+#show total_walls/1.
