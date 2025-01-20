@@ -22,7 +22,7 @@ class SokobanMap:
         Args:
             map_str: String representation of the Sokoban map.
         """
-        self.map_grid: List[List[str]] = [list(line) for line in map_str.strip().split('\n') if line.strip()]
+        self.map_grid: List[List[str]] = [list(line) for line in map_str.split('\n') if line.strip()]
         self.height = len(self.map_grid)
         self.width = max(len(row) for row in self.map_grid) if self.map_grid else 0
     
