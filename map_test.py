@@ -93,10 +93,10 @@ def compare_facts_detailed(expected: str, actual: str) -> str:
       #("map1.txt", "expected1.txt"),
       #("map2.txt", "expected2.txt"),
       #("map3.txt", "expected3.txt"),
-    #("map4.txt", "expected4.txt"),
-      #("map5.txt", "expected5.txt"),
-      #("map6.txt", "expected6.txt"),
-      ("map7.txt", "expected7.txt"),
+    ("map4.txt", "expected4.txt"),
+      ("map5.txt", "expected5.txt"),
+      ("map6.txt", "expected6.txt"),
+      #("map7.txt", "expected7.txt"),
       #("map8.txt", "expected8.txt"),
       #("map9.txt", "expected9.txt"),
       #("map10.txt", "expected10.txt"),
@@ -138,6 +138,7 @@ def test_generate_sokoban_lp(map_file: str, expected_file: str, selected_map: st
     # print("MAP GENERATED CORRECTLY")
 
     # Run solver and print solution
+    print(f"\nSolving Sokoban on map {map_file}\n")
     solution = solver.solve(map_str)
     print("\nSolution steps:")
     print(solution)

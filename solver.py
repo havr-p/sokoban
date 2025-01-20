@@ -190,7 +190,6 @@ class SokobanSolver:
         total_time=(datetime.datetime.strptime(end_time,'%H:%M:%S') - datetime.datetime.strptime(start_time,'%H:%M:%S'))
         print(f"\nfact generation took: {total_time}")
 
-        print("\nSolving Sokoban...\n")
         print(f"Generating plans of length: ", end='')
 
         for steps in range(min_steps, self.max_steps + 1):
@@ -343,7 +342,7 @@ class SokobanMap:
 
             # Разделяем аргументы действия, ожидается 5 аргументов
             args = self._split_step_arguments(action_inside, expected=5)
-            print(f"args: {args}")
+            #print(f"args: {args}")
             entity, from_l, to_l, crate_to, crate_name = args
 
             from_r, from_c = self._cell_id_to_coords(to_l)
@@ -403,7 +402,7 @@ class SokobanMap:
             to_c: Целевой столбец.
         """
         current_symbol = self.map_grid[from_r][from_c]
-        print(f"current symbol: '{current_symbol}'")
+        #print(f"current symbol: '{current_symbol}'")
         print(f"current location: {(from_r,from_c)}")
         
         if current_symbol not in (self.SYMBOL_SOKOBAN, self.SYMBOL_SOKOBAN_GOAL):
@@ -430,8 +429,8 @@ class SokobanMap:
             to_c: Целевой столбец.
         """
         current_symbol = self.map_grid[from_r][from_c]
-        print(f"current symbol: '{current_symbol}'")
-        print(f"current location: '({(from_r,from_c)})'")
+        #print(f"current symbol: '{current_symbol}'")
+        print(f"current location: {(from_r,from_c)}")
         assert current_symbol in (self.SYMBOL_CRATE, self.SYMBOL_CRATE_GOAL), f"На позиции ({from_r}, {from_c}) нет коробки."
         if current_symbol not in (self.SYMBOL_CRATE, self.SYMBOL_CRATE_GOAL):
             raise ValueError(f"На позиции ({from_r}, {from_c}) нет коробки.")
