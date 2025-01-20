@@ -53,5 +53,4 @@ clear(l1_3, 0).
 clear(l1_5, 0).
 clear(l1_6, 0).
 clear(l1_7, 0).
-#const maxsteps.
 time(0..maxsteps).

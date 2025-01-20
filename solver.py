@@ -74,7 +74,7 @@ class SokobanSolver:
         facts.extend(self._format_facts(location_list, goal_list, non_goal_list, walls_list))
         facts.extend(self._define_relations(lines, height, width))
         facts.extend(self._define_initial_positions(sokoban_pos, crate_positions, height, width, lines, walls))
-        facts.append(f"#const maxsteps={max_steps}.")
+        #facts.append(f"#const maxsteps={max_steps}.")
         facts.append("time(0..maxsteps).")
 
         return "\n".join(facts)
@@ -187,8 +187,8 @@ class SokobanSolver:
         for steps in range(min_steps, self.max_steps + 1):
             try:
                 #find optimal plan
-                maxsteps_string = f"maxsteps={min_steps}"
-                ctl = clingo.Control(arguments=["--models=0", "--opt-mode=opt"])
+                maxsteps_string = f"maxsteps={  steps}"
+                ctl = clingo.Control(arguments=["--models=0", "--opt-mode=opt", '--const', maxsteps_string])
                 ctl.load(self.domain_asp_file)
 
                 instance_facts = self.generate_facts_from_map(map_str, max_steps=steps)
