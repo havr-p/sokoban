@@ -84,7 +84,7 @@ sokoban-asp-solver/
 To solve a Sokoban puzzle using the ASP solver:
 
 ```bash
-python src/solver.py sokoban.lp maps/map1.txt --max_steps=50
+python solver.py sokoban.lp maps/map1.txt --max_steps=50
 ```
 
 **Arguments:**
@@ -145,7 +145,7 @@ clingo sokoban.lp maps/map1.txt -c max_steps=10
 ```  
 but python solver does essentialy same thing:  
 ```bash
-python src/solver.py sokoban.lp maps/map1.txt --max_steps=10
+python solver.py sokoban.lp maps/map1.txt --max_steps=10
 ```
 
 ### Control Switches
@@ -155,7 +155,7 @@ python src/solver.py sokoban.lp maps/map1.txt --max_steps=10
 
 ### Sample Input and Output
 
-**Sample Map (`maps/map1.txt`):**
+**Sample Map (`maps/map4.txt`):**
 
 ```
 #########
@@ -166,7 +166,7 @@ python src/solver.py sokoban.lp maps/map1.txt --max_steps=10
 **Running the Solver:**
 
 ```bash
-python src/solver.py sokoban.lp maps/map1.txt --max_steps=10
+python solver.py sokoban.lp maps/map1.txt --max_steps=10
 ```
 
 **Sample Output:**
