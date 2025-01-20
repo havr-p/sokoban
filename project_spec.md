@@ -1,4 +1,3 @@
-
 # Sokoban Solver as a Planning Problem in ASP
 
 ## Table of Contents
@@ -99,72 +98,8 @@ The ASP encoding translates the Sokoban puzzle into a formal representation that
 
 ### Goal Definition
 
-The goal is to ensure that all crates are placed on storage locations at least once during the plan execution. The following ASP rules define the goal and related constraints:
+The goal is to ensure that all crates are placed on storage locations at least once during the plan execution. The following ASP rules define the goal and related constraints (you can find it in "GOAL" section):
 
-```asp
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 4) GOAL: BOX IN L2 (AT LEAST AT ONE MOMENT IN TIME)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-:- isgoal(L), isnongoal(L).
-:- isgoal(L), wall(L).
-:- clear(L,T), time(T), wall(L).
-
-% reachedGoal(C) — indicates that crate C
-% was in cell L, marked as isgoal(L), at some moment T.
-reachedGoal(C) :- crate(C), at(C,L,T), isgoal(L), time(T).
-
-% Require that for EACH crate, reachedGoal(C) is provable.
-% If at least one crate is found for which reachedGoal(C) does not hold,
-% the program becomes consistent only by violating this rule, which is not allowed.
-:- crate(C), not reachedGoal(C).
-
-% If the Sokoban S is in two different locations L1 and L2
-% at the same moment T, this is forbidden.
-:- sokoban(sokoban), at(sokoban, L1, T), at(sokoban, L2, T), L1 != L2.
-
-% A crate C cannot be in (L1) and (L2) at moment T if L1 != L2
-:- crate(C), at(C, L1, T), at(C, L2, T), L1 != L2.
-
-% Two crates C1 and C2 cannot be in the same cell L at moment T
-:- crate(C1), crate(C2), C1 != C2, at(C1, L, T), at(C2, L, T).
-
-% Sokoban and a crate cannot be in the same cell L at moment T
-:- crate(C), sokoban(sokoban), at(C, L, T), at(sokoban, L, T).
-
-% Wall to the left or right of cell L
-adjacentWallLeftOrRight(L) :- wall(L1), leftOf(L, L1).
-adjacentWallLeftOrRight(L) :- wall(L1), leftOf(L1, L).
-
-% Wall above or below cell L
-adjacentWallAboveOrBelow(L) :- wall(L2), below(L, L2).
-adjacentWallAboveOrBelow(L) :- wall(L2), below(L2, L).
-
-% A cell is considered a deadlock if it is adjacent to two walls (left/right and above/below),
-% and it is not a goal.
-deadlock(L) :-
-    location(L),
-    adjacentWallLeftOrRight(L),
-    adjacentWallAboveOrBelow(L),
-    not isgoal(L).
-
-% Prohibit moving a crate into a deadlock cell
-:- do(pushLeft(S,X,Y,Z,C), T), deadlock(Z).
-:- do(pushRight(S,X,Y,Z,C), T), deadlock(Z).
-:- do(pushUp(S,X,Y,Z,C), T), deadlock(Z).
-:- do(pushDown(S,X,Y,Z,C), T), deadlock(Z).
-
-% Prohibit moving a crate into a wall
-:- do(pushLeft(S,X,Y,Z,C), T), wall(Z).
-:- do(pushRight(S,X,Y,Z,C), T), wall(Z).
-:- do(pushUp(S,X,Y,Z,C), T), wall(Z).
-:- do(pushDown(S,X,Y,Z,C), T), wall(Z).
-
-% Prohibit moving Sokoban into a wall
-:- do(moveLeft(S,X,Y), T), wall(Y).
-:- do(moveRight(S,X,Y), T), wall(Y).
-:- do(moveUp(S,X,Y), T), wall(Y).
-:- do(moveDown(S,X,Y), T), wall(Y).
-```
 
 **Explanation:**
 
@@ -194,30 +129,9 @@ deadlock(L) :-
 
 ### Action Selection
 
+You can find this encoding part in "ACTION SELECTION" section of sokoban.lp
 To ensure that exactly one action is chosen per time step, the following rule is implemented:
 
-```asp
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 5) ACTION SELECTION: exactly 1 action per step
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% For each T < maxsteps: choose 1 from all move/push (with appropriate parameters),
-% or no action at all if desired - then change 1{..}1 to 0..1{..}.
-%
-% But below we generate a "boundary" set of ground actions through rules.
-% 
-% Method A: separate predicate do(Action,T). 
-% Method B: directly "moveLeft(S,X,Y,T)" as an action. 
-% I will show Method A to be closer to the classical notation:
-    
-0 { do(M,T) : move(M) } 1 :- time(T), T < maxsteps.
-    
-goal_achieved(T) :- 
-    time(T),
-    #count { C : crate(C), not reachedGoal(C) } 0.
-    
-% Constraint: Sokoban cannot remain on the same cell in two consecutive steps
-:- at(sokoban, L, T), at(sokoban, L, T+1), T < maxsteps, not goal_achieved(T).
-```
 
 **Explanation:**
 
@@ -236,66 +150,7 @@ goal_achieved(T) :-
 ### Defining Actions
 
 All possible actions (`move` and `push`) are defined to generate ground actions that can be selected during planning.
-
-```asp
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% 6) DEFINING "move(M)" (GENERATING ALL POSSIBLE ACTIONS)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% We do not write action(...), but directly "move(...)" — any ground-term:
-% moveLeft(S,X,Y), pushLeft(S,X,Y,Z,C), etc.
-
-% --- moveLeft ---
-move(moveLeft(S,X,Y)) :-
-  sokoban(S),
-  location(X;Y),
-  leftOf(Y,X).
-
-% --- moveRight ---
-move(moveRight(S,X,Y)) :-
-  sokoban(S),
-  location(X;Y),
-  leftOf(X,Y).
-
-% --- moveUp ---
-move(moveUp(S,X,Y)) :-
-  sokoban(S),
-  location(X;Y),
-  below(X,Y).
-
-% --- moveDown ---
-move(moveDown(S,X,Y)) :-
-  sokoban(S),
-  location(X;Y),
-  below(Y,X).
-
-% --- pushLeft ---
-move(pushLeft(S,X,Y,Z,C)) :-
-  sokoban(S), crate(C),
-  location(X;Y;Z),
-  leftOf(Y,X),
-  leftOf(Z,Y).
-
-% --- pushRight ---
-move(pushRight(S,X,Y,Z,C)) :-
-  sokoban(S), crate(C),
-  location(X;Y;Z),
-  leftOf(X,Y),
-  leftOf(Y,Z).
-
-% --- pushUp ---
-move(pushUp(S,X,Y,Z,C)) :-
-  sokoban(S), crate(C),
-  location(X;Y;Z),
-  below(X,Y),
-  below(Y,Z).
-
-% --- pushDown ---
-move(pushDown(S,X,Y,Z,C)) :-
-  sokoban(S), crate(C),
-  location(X;Y;Z),
-  below(Y,X),
-  below(Z,Y).
-```
+For detailed info see "6) DEFINING "move(M)" (GENERATING ALL POSSIBLE ACTIONS)" section of sokoban.lp
 
 **Explanation:**
 
@@ -317,6 +172,7 @@ Each `move` predicate defines a possible action Sokoban can perform:
 ### Inertia
 
 Inertia rules ensure that the state of the game persists over time unless altered by actions.
+For detailed description of rules from this section see "7) INERTIA" section in sokoban.lp
 
 ```asp
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -874,31 +730,12 @@ The frame problem is a fundamental challenge in AI planning, dealing with repres
 4. **Avoiding Over-specification:**
    - By using `not -at(O,L,T+1)`, the encoding avoids the need to specify all non-effects explicitly, thereby preventing unnecessary constraints and keeping the encoding concise.
 
-### Example Scenario
-
-Consider Sokoban performing a `pushRight` action:
-
-1. **Preconditions:**
-   - Sokoban is at location `X`.
-   - Crate `C` is at location `Y`.
-   - Location `Z` is clear.
-
-2. **Action Execution:**
-   - Sokoban moves to `Y`.
-   - Crate `C` moves to `Z`.
-
-3. **Frame Problem Handling:**
-   - **Inertia Rules:** All other objects and cells retain their previous states unless directly affected by the action.
-   - **Negative Effects:** The previous positions of Sokoban and crate `C` are explicitly cleared.
-   - **Positive Effects:** New positions of Sokoban and crate `C` are established.
-
-This ensures that only the necessary parts of the game state are updated, maintaining consistency and preventing unintended side effects.
 
 ## Experience and Reflections
 
-Working on this project provided profound insights into the application of declarative programming for solving intricate planning problems. Modeling Sokoban in ASP underscored the elegance and expressiveness of logic programming in capturing complex game mechanics and constraints.
+Working on this project provided profound insights into the application of declarative programming for solving intricate planning problems. Modeling Sokoban in ASP underscored the elegance and expressiveness of logic programming.
 
-### Challenges Encountered
+### Challenges
 
 - **Frame Problem Handling:** Ensuring that only relevant state changes were encoded required meticulous design of inertia rules.
 - **Performance Optimization:** Balancing the expressiveness of the encoding with the solver's efficiency necessitated iterative refinements.
