@@ -66,11 +66,11 @@ sokoban-asp-solver/
 │   └── ...
 ├── maps_out/
 │   └── generated_map1.txt
-├── src/
-│   ├── conftest.py
-│   ├── test_solver.py
-│   ├── solver.py
-│   └── visualizer.py
+├──sokoban_map.py
+├── conftest.py
+├── test_solver.py
+├── solver.py
+└── visualizer.py
 ├── sokoban.lp
 ├── requirements.txt
 ├── README.md

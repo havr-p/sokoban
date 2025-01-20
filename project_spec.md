@@ -664,6 +664,7 @@ The implementation consists of two primary components:
 2. **Python Interface:**
    - **Solver (`solver.py`):** Interfaces with Clingo to solve the ASP-encoded Sokoban puzzle. It translates map files into ASP facts, invokes the solver, and processes the solution steps.
    - **Visualizer (`visualizer.py`):** Provides a GUI for users to select maps, run tests, and visualize the solution steps interactively.
+   - **Map backend (`sokoban_map.py`):** Provides a backend for step-by-step map generations.
    - **Testing (`test_solver.py` & `conftest.py`):** Implements automated tests using `pytest` to validate the correctness of the encoding and solver.
 
 ### Workflow
