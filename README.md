@@ -139,7 +139,14 @@ python visualizer.py
 - **Run Test:** Solve the selected map and visualize the solution.
 - **Visualization:** Step through each move to see the Sokoban puzzle being solved.
 - **ASP Map Display:** View the generated ASP facts for the selected map.
-- **Pytest Output:** Review test results and solver output.
+- **Pytest Output:** Review test results and solver output. All generated maps are stored in maps_out folder. You can provide them as a second argument for clingo directly:
+```bash
+clingo sokoban.lp maps/map1.txt -c max_steps=10
+```  
+but python solver does essentialy same thing:  
+```bash
+python src/solver.py sokoban.lp maps/map1.txt --max_steps=10
+```
 
 ### Control Switches
 
