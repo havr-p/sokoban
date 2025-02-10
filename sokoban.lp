@@ -85,8 +85,6 @@ goal_achieved(T) :-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% 6) DEFINING "move(M)" (GENERATING ALL POSSIBLE ACTIONS)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% We do not write action(...), but directly "move(...)" — any ground-term:
-% moveLeft(S,X,Y), pushLeft(S,X,Y,Z,C), etc.
 
 % --- moveLeft ---
 move(moveLeft(S,X,Y)) :-
